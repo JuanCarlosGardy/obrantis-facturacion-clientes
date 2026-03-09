@@ -645,12 +645,38 @@ function getCurrentYear() {
 }
 
 function getNextInvoiceNumber() {
-  const year = getCurrentYear();
-  const sameYear = invoices.filter((item) => String(item.invoiceYear) === String(year));
-  const next = sameYear.length + 1;
-  return `${year}-${String(next).padStart(3, "0")}`;
-}
+  const year = String(getCurrentYear());
 
+  const sameYearInvoices = invoices.filter((item) => {
+    const numberText = String(item.invoiceNumber || "").trim();
+    return numberText.startsWith(year + "-");
+  });
+
+  if (!sameYearInvoices.length) {
+    return `${year}-001`;
+  }
+
+  let maxSerial = 0;
+
+  sameYearInvoices.forEach((item) => {
+    const numberText = String(item.invoiceNumber || "").trim();
+    const parts = numberText.split("-");
+
+    if (parts.length !== 2) return;
+    if (parts[0] !== year) return;
+
+    const serial = Number(parts[1]);
+    if (!Number.isNaN(serial) && serial > maxSerial) {
+      maxSerial = serial;
+    }
+  });
+
+  const nextSerial = maxSerial + 1;
+  return `${year}-${String(nextSerial).padStart(3, "0")}`;
+}
+function isValidInvoiceNumberFormat(value) {
+  return /^\d{4}-\d{3}$/.test(String(value || "").trim());
+}
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString("es-ES", {
     style: "currency",
