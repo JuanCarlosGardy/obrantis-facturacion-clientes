@@ -244,12 +244,13 @@ function deleteClient(id) {
   const ok = window.confirm(`¿Eliminar el cliente "${client.name}"?`);
   if (!ok) return;
 
-  clients = clients.filter((item) => item.id !== id);
+    clients = clients.filter((item) => item.id !== id);
 
   if (editingClientId === id) {
     resetClientForm();
   }
 
+  saveClientsToStorage();
   filterClients();
 }
 
@@ -284,12 +285,13 @@ if (clientForm) {
       return;
     }
 
-    if (editingClientId) {
+       if (editingClientId) {
       clients = clients.map((item) => item.id === editingClientId ? data : item);
     } else {
       clients.unshift(data);
     }
 
+    saveClientsToStorage();
     resetClientForm();
     filterClients();
   });
