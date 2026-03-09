@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OBRANTIS · Facturación Clientes</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>OBRANTIS</h1>
+        <p>Facturación de clientes</p>
+      </div>
+
+      <nav class="menu">
+        <button class="menu-btn active" data-view="dashboard">Dashboard</button>
+        <button class="menu-btn" data-view="clients">Clientes</button>
+        <button class="menu-btn" data-view="projects">Obras</button>
+        <button class="menu-btn" data-view="invoices">Facturas</button>
+        <button class="menu-btn" data-view="reports">Informes</button>
+        <button class="menu-btn" data-view="settings">Configuración</button>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h2 id="viewTitle">Dashboard</h2>
+          <p id="viewSubtitle">Resumen general de facturación emitida</p>
+        </div>
+      </header>
+
+      <section id="view-dashboard" class="view active">
+        <div class="cards-grid">
+          <article class="card stat-card">
+            <h3>Facturado este mes</h3>
+            <p class="stat-value">0,00 €</p>
+          </article>
+
+          <article class="card stat-card">
+            <h3>Cobrado este mes</h3>
+            <p class="stat-value">0,00 €</p>
+          </article>
+
+          <article class="card stat-card">
+            <h3>Pendiente de cobro</h3>
+            <p class="stat-value">0,00 €</p>
+          </article>
+
+          <article class="card stat-card">
+            <h3>Facturas vencidas</h3>
+            <p class="stat-value">0</p>
+          </article>
+        </div>
+
+        <div class="card">
+          <h3>Accesos rápidos</h3>
+          <div class="quick-actions">
+            <button type="button" class="action-btn">Nuevo cliente</button>
+            <button type="button" class="action-btn">Nueva obra</button>
+            <button type="button" class="action-btn">Nueva factura</button>
+            <button type="button" class="action-btn">Ver informes</button>
+          </div>
+        </div>
+      </section>
+
+            <section id="view-clients" class="view">
+        <div class="section-header">
+          <h3>Clientes</h3>
+          <button type="button" class="primary-btn" id="btnShowClientForm">+ Nuevo cliente</button>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <input
+              type="text"
+              id="clientSearch"
+              class="search-input"
+              placeholder="Buscar por nombre, CIF, teléfono o email"
+            />
+          </div>
+        </div>
+
+        <div class="card" id="clientFormCard">
+          <h4 class="block-title">Ficha de cliente</h4>
+
+          <form id="clientForm" class="form-grid">
+            <input type="hidden" id="clientId" />
+
+            <div class="field field-full">
+              <label for="clientName">Nombre comercial o razón social</label>
+              <input type="text" id="clientName" required />
+            </div>
+
+            <div class="field">
+              <label for="clientTaxId">CIF / NIF</label>
+              <input type="text" id="clientTaxId" />
+            </div>
+
+            <div class="field">
+              <label for="clientPhone">Teléfono</label>
+              <input type="text" id="clientPhone" />
+            </div>
+
+            <div class="field">
+              <label for="clientEmail">Email</label>
+              <input type="email" id="clientEmail" />
+            </div>
+
+            <div class="field">
+              <label for="clientContactPerson">Persona de contacto</label>
+              <input type="text" id="clientContactPerson" />
+            </div>
+
+            <div class="field field-full">
+              <label for="clientAddress">Dirección</label>
+              <input type="text" id="clientAddress" />
+            </div>
+
+            <div class="field">
+              <label for="clientCity">Población</label>
+              <input type="text" id="clientCity" />
+            </div>
+
+            <div class="field">
+              <label for="clientProvince">Provincia</label>
+              <input type="text" id="clientProvince" />
+            </div>
+
+            <div class="field">
+              <label for="clientPostalCode">Código postal</label>
+              <input type="text" id="clientPostalCode" />
+            </div>
+
+            <div class="field">
+              <label for="clientIsActive">Estado</label>
+              <select id="clientIsActive">
+                <option value="true">Activo</option>
+                <option value="false">Inactivo</option>
+              </select>
+            </div>
+
+            <div class="field field-full">
+              <label for="clientNotes">Observaciones</label>
+              <textarea id="clientNotes" rows="4"></textarea>
+            </div>
+
+            <div class="form-actions field-full">
+              <button type="submit" class="primary-btn" id="btnSaveClient">Guardar cliente</button>
+              <button type="button" class="action-btn" id="btnCancelClientEdit">Cancelar</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h4 class="block-title">Listado de clientes</h4>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>CIF / NIF</th>
+                  <th>Teléfono</th>
+                  <th>Email</th>
+                  <th>Contacto</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="clientsTableBody">
+                <tr>
+                  <td colspan="7" class="empty-cell">No hay clientes todavía.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+           <section id="view-projects" class="view">
+        <div class="section-header">
+          <h3>Obras / Trabajos</h3>
+          <button type="button" class="primary-btn" id="btnShowProjectForm">+ Nueva obra</button>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <input
+              type="text"
+              id="projectSearch"
+              class="search-input"
+              placeholder="Buscar por obra, cliente, dirección, población o referencia"
+            />
+          </div>
+        </div>
+
+        <div class="card" id="projectFormCard">
+          <h4 class="block-title">Ficha de obra / trabajo</h4>
+
+          <form id="projectForm" class="form-grid">
+            <input type="hidden" id="projectId" />
+
+            <div class="field">
+              <label for="projectClientId">Cliente asociado</label>
+              <select id="projectClientId" required>
+                <option value="">Selecciona un cliente</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="projectStatus">Estado</label>
+              <select id="projectStatus">
+                <option value="Pendiente">Pendiente</option>
+                <option value="En curso">En curso</option>
+                <option value="Terminada">Terminada</option>
+                <option value="Cancelada">Cancelada</option>
+              </select>
+            </div>
+
+            <div class="field field-full">
+              <label for="projectName">Nombre o referencia de obra</label>
+              <input type="text" id="projectName" required />
+            </div>
+
+            <div class="field">
+              <label for="projectReference">Referencia interna</label>
+              <input type="text" id="projectReference" />
+            </div>
+
+            <div class="field">
+              <label for="projectStartDate">Fecha de inicio</label>
+              <input type="date" id="projectStartDate" />
+            </div>
+
+            <div class="field">
+              <label for="projectEndDate">Fecha final</label>
+              <input type="date" id="projectEndDate" />
+            </div>
+
+            <div class="field">
+              <label for="projectIsActive">Estado interno</label>
+              <select id="projectIsActive">
+                <option value="true">Activa</option>
+                <option value="false">Archivada</option>
+              </select>
+            </div>
+
+            <div class="field field-full">
+              <label for="projectAddress">Dirección de la obra</label>
+              <input type="text" id="projectAddress" />
+            </div>
+
+            <div class="field">
+              <label for="projectCity">Población</label>
+              <input type="text" id="projectCity" />
+            </div>
+
+            <div class="field">
+              <label for="projectProvince">Provincia</label>
+              <input type="text" id="projectProvince" />
+            </div>
+
+            <div class="field">
+              <label for="projectPostalCode">Código postal</label>
+              <input type="text" id="projectPostalCode" />
+            </div>
+
+            <div class="field field-full">
+              <label for="projectNotes">Observaciones</label>
+              <textarea id="projectNotes" rows="4"></textarea>
+            </div>
+
+            <div class="form-actions field-full">
+              <button type="submit" class="primary-btn" id="btnSaveProject">Guardar obra</button>
+              <button type="button" class="action-btn" id="btnCancelProjectEdit">Cancelar</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h4 class="block-title">Listado de obras</h4>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Obra</th>
+                  <th>Cliente</th>
+                  <th>Referencia</th>
+                  <th>Población</th>
+                  <th>Estado</th>
+                  <th>Inicio</th>
+                  <th>Activa</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="projectsTableBody">
+                <tr>
+                  <td colspan="8" class="empty-cell">No hay obras todavía.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+           <section id="view-invoices" class="view">
+        <div class="section-header">
+          <h3>Facturas emitidas</h3>
+          <button type="button" class="primary-btn" id="btnShowInvoiceForm">+ Nueva factura</button>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <input
+              type="text"
+              id="invoiceSearch"
+              class="search-input"
+              placeholder="Buscar por número, cliente, obra o concepto"
+            />
+          </div>
+        </div>
+
+        <div class="card" id="invoiceFormCard">
+          <h4 class="block-title">Ficha de factura emitida</h4>
+
+          <form id="invoiceForm" class="form-grid">
+            <input type="hidden" id="invoiceId" />
+
+            <div class="field">
+              <label for="invoiceNumber">Número de factura</label>
+              <input type="text" id="invoiceNumber" required />
+            </div>
+
+            <div class="field">
+              <label for="invoiceDate">Fecha de factura</label>
+              <input type="date" id="invoiceDate" required />
+            </div>
+
+            <div class="field">
+              <label for="invoiceClientId">Cliente</label>
+              <select id="invoiceClientId" required>
+                <option value="">Selecciona un cliente</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="invoiceProjectId">Obra / trabajo (opcional)</label>
+              <select id="invoiceProjectId">
+                <option value="">Sin obra asociada</option>
+              </select>
+            </div>
+
+            <div class="field field-full">
+              <label for="invoiceConcept">Concepto general</label>
+              <input type="text" id="invoiceConcept" />
+            </div>
+
+            <div class="field field-full">
+              <label>Líneas de factura</label>
+              <div id="invoiceLinesContainer" class="invoice-lines"></div>
+              <button type="button" class="action-btn" id="btnAddInvoiceLine">+ Añadir línea</button>
+            </div>
+
+            <div class="field">
+              <label for="invoicePaymentStatus">Estado de cobro</label>
+              <select id="invoicePaymentStatus">
+                <option value="Pendiente">Pendiente</option>
+                <option value="Parcialmente cobrada">Parcialmente cobrada</option>
+                <option value="Cobrada">Cobrada</option>
+                <option value="Anulada">Anulada</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="invoicePaymentDate">Fecha de cobro</label>
+              <input type="date" id="invoicePaymentDate" />
+            </div>
+
+            <div class="field">
+              <label for="invoiceAmountPaid">Importe cobrado</label>
+              <input type="number" id="invoiceAmountPaid" min="0" step="0.01" value="0" />
+            </div>
+
+            <div class="field">
+              <label for="invoicePaymentMethod">Forma de pago</label>
+              <select id="invoicePaymentMethod">
+                <option value="">Selecciona</option>
+                <option value="Transferencia">Transferencia</option>
+                <option value="Efectivo">Efectivo</option>
+                <option value="Tarjeta">Tarjeta</option>
+                <option value="Recibo">Recibo</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+
+            <div class="field field-full">
+              <label for="invoiceNotes">Observaciones</label>
+              <textarea id="invoiceNotes" rows="4"></textarea>
+            </div>
+
+            <div class="field field-full">
+              <label for="invoiceInternalNotes">Observaciones internas</label>
+              <textarea id="invoiceInternalNotes" rows="3"></textarea>
+            </div>
+
+            <div class="field field-full">
+              <div class="totals-box">
+                <div class="total-row">
+                  <span>Base imponible</span>
+                  <strong id="invoiceBaseTotal">0,00 €</strong>
+                </div>
+                <div class="total-row">
+                  <span>IVA total</span>
+                  <strong id="invoiceVatTotal">0,00 €</strong>
+                </div>
+                <div class="total-row grand-total">
+                  <span>Total factura</span>
+                  <strong id="invoiceGrandTotal">0,00 €</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions field-full">
+              <button type="submit" class="primary-btn" id="btnSaveInvoice">Guardar factura</button>
+              <button type="button" class="action-btn" id="btnCancelInvoiceEdit">Cancelar</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h4 class="block-title">Listado de facturas</h4>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                              <tr>
+                  <th>Número</th>
+                  <th>Fecha</th>
+                  <th>Cliente</th>
+                  <th>Obra</th>
+                  <th>Concepto</th>
+                  <th>Base</th>
+                  <th>IVA</th>
+                  <th>Total</th>
+                  <th>Cobro</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="invoicesTableBody">
+                <tr>
+                 <td colspan="10" class="empty-cell">No hay facturas todavía.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-reports" class="view">
+        <div class="section-header">
+          <h3>Informes</h3>
+        </div>
+
+        <div class="card">
+          <p>Aquí irán los informes mensual, trimestral y anual, con exportación CSV / Excel / PDF.</p>
+        </div>
+      </section>
+
+      <section id="view-settings" class="view">
+        <div class="section-header">
+          <h3>Configuración</h3>
+        </div>
+
+        <div class="card">
+          <p>Aquí irán los datos generales de empresa, ajustes de numeración y opciones de impresión.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
