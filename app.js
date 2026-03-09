@@ -91,7 +91,13 @@ const clientSearchInput = document.getElementById("clientSearch");
 const btnCancelClientEdit = document.getElementById("btnCancelClientEdit");
 const btnShowClientForm = document.getElementById("btnShowClientForm");
 const btnSaveClient = document.getElementById("btnSaveClient");
-
+const authScreen = document.getElementById("authScreen");
+const appShell = document.getElementById("appShell");
+const loginForm = document.getElementById("loginForm");
+const loginEmailInput = document.getElementById("loginEmail");
+const loginPasswordInput = document.getElementById("loginPassword");
+const authMessage = document.getElementById("authMessage");
+const btnLogout = document.getElementById("btnLogout");
 function generateClientId() {
   return "CLI-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
 }
