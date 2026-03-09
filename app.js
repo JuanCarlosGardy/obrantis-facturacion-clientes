@@ -514,8 +514,6 @@ if (projectForm) {
   projectForm.addEventListener("submit", (ev) => {
     ev.preventDefault();
 
-    fillProjectClientOptions(editingProjectId ? projectClientIdInput.value : "");
-
     const data = getProjectFormData();
 
     if (!data.clientId) {
@@ -528,7 +526,7 @@ if (projectForm) {
       return;
     }
 
-        if (editingProjectId) {
+    if (editingProjectId) {
       projects = projects.map((item) => item.id === editingProjectId ? data : item);
     } else {
       projects.unshift(data);
