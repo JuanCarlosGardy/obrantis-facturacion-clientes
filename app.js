@@ -479,12 +479,13 @@ function deleteProject(id) {
   const ok = window.confirm(`¿Eliminar la obra "${project.name}"?`);
   if (!ok) return;
 
-  projects = projects.filter((item) => item.id !== id);
+    projects = projects.filter((item) => item.id !== id);
 
   if (editingProjectId === id) {
     resetProjectForm();
   }
 
+  saveProjectsToStorage();
   filterProjects();
 }
 
@@ -527,12 +528,13 @@ if (projectForm) {
       return;
     }
 
-    if (editingProjectId) {
+        if (editingProjectId) {
       projects = projects.map((item) => item.id === editingProjectId ? data : item);
     } else {
       projects.unshift(data);
     }
 
+    saveProjectsToStorage();
     resetProjectForm();
     filterProjects();
   });
