@@ -1283,5 +1283,5 @@ fillInvoiceClientOptions();
 fillInvoiceProjectOptions();
 resetInvoiceForm();
 renderInvoicesTable();
-}
+
 
