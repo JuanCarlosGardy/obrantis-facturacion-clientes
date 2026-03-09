@@ -448,12 +448,11 @@ function renderProjectsTable(items = projects) {
       <td>${escapeHtml(formatShortDate(project.startDate))}</td>
       <td>${project.isActive ? "Sí" : "No"}</td>
             <td>
-        <div class="row-actions">
-          <button type="button" class="btn-small" onclick="printInvoice('${invoice.id}')">Imprimir</button>
-          <button type="button" class="btn-small" onclick="editInvoice('${invoice.id}')">Editar</button>
-          <button type="button" class="btn-small danger" onclick="deleteInvoice('${invoice.id}')">Eliminar</button>
-        </div>
-      </td>
+  <div class="row-actions">
+    <button type="button" class="btn-small" onclick="editProject('${project.id}')">Editar</button>
+    <button type="button" class="btn-small danger" onclick="deleteProject('${project.id}')">Eliminar</button>
+  </div>
+</td>
     </tr>
   `).join("");
 }
