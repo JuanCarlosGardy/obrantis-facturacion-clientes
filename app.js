@@ -514,7 +514,25 @@ if (projectForm) {
   projectForm.addEventListener("submit", (ev) => {
     ev.preventDefault();
 
-    const data = getProjectFormData();
+    const selectedClientId = projectClientIdInput.value;
+    const selectedClient = clients.find((client) => client.id === selectedClientId) || null;
+
+    const data = {
+      id: editingProjectId || generateProjectId(),
+      clientId: selectedClient ? selectedClient.id : "",
+      clientName: selectedClient ? selectedClient.name : "",
+      status: projectStatusInput.value,
+      name: projectNameInput.value.trim(),
+      reference: projectReferenceInput.value.trim(),
+      startDate: projectStartDateInput.value,
+      endDate: projectEndDateInput.value,
+      isActive: projectIsActiveInput.value === "true",
+      address: projectAddressInput.value.trim(),
+      city: projectCityInput.value.trim(),
+      province: projectProvinceInput.value.trim(),
+      postalCode: projectPostalCodeInput.value.trim(),
+      notes: projectNotesInput.value.trim()
+    };
 
     if (!data.clientId) {
       alert("Debes seleccionar un cliente para la obra.");
@@ -532,9 +550,15 @@ if (projectForm) {
       projects.unshift(data);
     }
 
-    saveProjectsToStorage();
+    if (typeof saveProjectsToStorage === "function") {
+      saveProjectsToStorage();
+    }
+
     resetProjectForm();
+    renderProjectsTable();
     filterProjects();
+
+    alert("Obra guardada correctamente.");
   });
 }
 
