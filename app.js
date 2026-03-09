@@ -1233,7 +1233,10 @@ if (invoiceForm) {
       alert("Debes indicar el número de factura.");
       return;
     }
-
+    if (!isValidInvoiceNumberFormat(data.invoiceNumber)) {
+      alert("El número de factura debe tener este formato: 2026-001");
+      return;
+    }
     if (!data.invoiceDate) {
       alert("Debes indicar la fecha de factura.");
       return;
@@ -1249,7 +1252,9 @@ if (invoiceForm) {
       return;
     }
 
-    const duplicated = invoices.find((item) => item.invoiceNumber === data.invoiceNumber && item.id !== data.id);
+        const duplicated = invoices.find((item) => {
+      return String(item.invoiceNumber || "").trim() === String(data.invoiceNumber || "").trim() && item.id !== data.id;
+    });
     if (duplicated) {
       alert("Ese número de factura ya existe.");
       return;
