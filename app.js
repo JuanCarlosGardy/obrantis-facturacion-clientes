@@ -836,7 +836,236 @@ function renderInvoicesTable(items = invoices) {
     </tr>
   `).join("");
 }
+function printInvoice(id) {
+  const invoice = invoices.find((item) => item.id === id);
+  if (!invoice) {
+    alert("No se encontró la factura.");
+    return;
+  }
 
+  const linesHtml = (invoice.lines || []).map((line) => `
+    <tr>
+      <td>${escapeHtml(line.description || "-")}</td>
+      <td style="text-align:right;">${Number(line.quantity || 0).toLocaleString("es-ES")}</td>
+      <td style="text-align:right;">${formatCurrency(line.unitPrice || 0)}</td>
+      <td style="text-align:right;">${Number(line.vatRate || 0)}%</td>
+      <td style="text-align:right;">${formatCurrency(line.baseAmount || 0)}</td>
+      <td style="text-align:right;">${formatCurrency(line.vatAmount || 0)}</td>
+      <td style="text-align:right;">${formatCurrency(line.lineTotal || 0)}</td>
+    </tr>
+  `).join("");
+
+  const printWindow = window.open("", "_blank", "width=1000,height=800");
+  if (!printWindow) {
+    alert("El navegador ha bloqueado la ventana de impresión.");
+    return;
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Factura ${escapeHtml(invoice.invoiceNumber || "")}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          margin: 0;
+          padding: 30px;
+          color: #111827;
+          background: #ffffff;
+        }
+        .sheet {
+          max-width: 1000px;
+          margin: 0 auto;
+        }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 24px;
+          border-bottom: 2px solid #1f4e79;
+          padding-bottom: 16px;
+          margin-bottom: 24px;
+        }
+        .company h1 {
+          margin: 0 0 8px;
+          font-size: 28px;
+          color: #1f4e79;
+        }
+        .company p,
+        .meta p,
+        .box p {
+          margin: 4px 0;
+          line-height: 1.4;
+        }
+        .meta {
+          text-align: right;
+        }
+        .grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 24px;
+        }
+        .box {
+          border: 1px solid #d1d5db;
+          border-radius: 10px;
+          padding: 14px;
+        }
+        .box h3 {
+          margin: 0 0 10px;
+          font-size: 16px;
+          color: #1f4e79;
+        }
+        .concept {
+          margin-bottom: 20px;
+          border: 1px solid #d1d5db;
+          border-radius: 10px;
+          padding: 14px;
+        }
+        .concept h3 {
+          margin: 0 0 10px;
+          font-size: 16px;
+          color: #1f4e79;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+        }
+        th, td {
+          border: 1px solid #d1d5db;
+          padding: 10px 8px;
+          font-size: 13px;
+          vertical-align: top;
+        }
+        th {
+          background: #f3f4f6;
+          text-align: left;
+        }
+        .totals {
+          margin-left: auto;
+          width: 320px;
+          border-collapse: collapse;
+        }
+        .totals td {
+          font-size: 14px;
+        }
+        .totals .final td {
+          font-weight: 700;
+          font-size: 16px;
+          background: #f9fafb;
+        }
+        .notes {
+          margin-top: 24px;
+          border-top: 1px solid #d1d5db;
+          padding-top: 16px;
+        }
+        .notes h3 {
+          margin: 0 0 10px;
+          font-size: 16px;
+          color: #1f4e79;
+        }
+        @media print {
+          body {
+            padding: 0;
+          }
+          .sheet {
+            max-width: none;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="sheet">
+        <div class="header">
+          <div class="company">
+            <h1>OBRANTIS S.L.</h1>
+            <p><strong>Administración</strong></p>
+            <p>Tel.: 610 673 307</p>
+            <p>Email: administracion@obrantis.com</p>
+          </div>
+
+          <div class="meta">
+            <p><strong>FACTURA</strong></p>
+            <p><strong>Nº:</strong> ${escapeHtml(invoice.invoiceNumber || "-")}</p>
+            <p><strong>Fecha:</strong> ${escapeHtml(formatShortDate(invoice.invoiceDate))}</p>
+            <p><strong>Estado de cobro:</strong> ${escapeHtml(invoice.paymentStatus || "-")}</p>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="box">
+            <h3>Cliente</h3>
+            <p><strong>${escapeHtml(invoice.clientName || "-")}</strong></p>
+          </div>
+
+          <div class="box">
+            <h3>Obra / Trabajo</h3>
+            <p>${escapeHtml(invoice.projectName || "Sin obra asociada")}</p>
+          </div>
+        </div>
+
+        <div class="concept">
+          <h3>Concepto general</h3>
+          <p>${escapeHtml(invoice.concept || "-")}</p>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Descripción</th>
+              <th style="text-align:right;">Cantidad</th>
+              <th style="text-align:right;">P. unitario</th>
+              <th style="text-align:right;">IVA</th>
+              <th style="text-align:right;">Base</th>
+              <th style="text-align:right;">Cuota IVA</th>
+              <th style="text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml || `<tr><td colspan="7">Sin líneas</td></tr>`}
+          </tbody>
+        </table>
+
+        <table class="totals">
+          <tr>
+            <td><strong>Base imponible</strong></td>
+            <td style="text-align:right;">${formatCurrency(invoice.baseTotal || 0)}</td>
+          </tr>
+          <tr>
+            <td><strong>IVA total</strong></td>
+            <td style="text-align:right;">${formatCurrency(invoice.vatTotal || 0)}</td>
+          </tr>
+          <tr class="final">
+            <td><strong>Total factura</strong></td>
+            <td style="text-align:right;">${formatCurrency(invoice.totalAmount || 0)}</td>
+          </tr>
+        </table>
+
+        <div class="notes">
+          <h3>Observaciones</h3>
+          <p>${escapeHtml(invoice.notes || "-")}</p>
+          <p><strong>Forma de pago:</strong> ${escapeHtml(invoice.paymentMethod || "-")}</p>
+          <p><strong>Fecha de cobro:</strong> ${escapeHtml(formatShortDate(invoice.paymentDate || ""))}</p>
+          <p><strong>Importe cobrado:</strong> ${formatCurrency(invoice.amountPaid || 0)}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+  }, 300);
+}
 function filterInvoices() {
   const search = (invoiceSearchInput.value || "").trim().toLowerCase();
 
