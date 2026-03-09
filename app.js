@@ -162,7 +162,59 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+const STORAGE_KEYS = {
+  clients: "obrantis_clients",
+  projects: "obrantis_projects",
+  invoices: "obrantis_invoices"
+};
 
+function saveClientsToStorage() {
+  localStorage.setItem(STORAGE_KEYS.clients, JSON.stringify(clients));
+}
+
+function saveProjectsToStorage() {
+  localStorage.setItem(STORAGE_KEYS.projects, JSON.stringify(projects));
+}
+
+function saveInvoicesToStorage() {
+  localStorage.setItem(STORAGE_KEYS.invoices, JSON.stringify(invoices));
+}
+
+function loadClientsFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.clients);
+    clients = raw ? JSON.parse(raw) : [];
+  } catch (error) {
+    console.error("Error cargando clientes desde localStorage:", error);
+    clients = [];
+  }
+}
+
+function loadProjectsFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.projects);
+    projects = raw ? JSON.parse(raw) : [];
+  } catch (error) {
+    console.error("Error cargando obras desde localStorage:", error);
+    projects = [];
+  }
+}
+
+function loadInvoicesFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.invoices);
+    invoices = raw ? JSON.parse(raw) : [];
+  } catch (error) {
+    console.error("Error cargando facturas desde localStorage:", error);
+    invoices = [];
+  }
+}
+
+function loadAllFromStorage() {
+  loadClientsFromStorage();
+  loadProjectsFromStorage();
+  loadInvoicesFromStorage();
+}
 function editClient(id) {
   const client = clients.find((item) => item.id === id);
   if (!client) return;
