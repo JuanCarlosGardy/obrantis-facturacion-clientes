@@ -977,6 +977,13 @@ renderClientsTable = function (items = clients) {
   fillInvoiceProjectOptions(invoiceClientIdInput?.value || "", invoiceProjectIdInput?.value || "");
 };
 
+loadAllFromStorage();
+
+renderClientsTable();
+fillProjectClientOptions();
+renderProjectsTable();
+fillInvoiceClientOptions();
+fillInvoiceProjectOptions();
 resetInvoiceForm();
 renderInvoicesTable();
 function printInvoice(id) {
