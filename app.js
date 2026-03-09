@@ -1514,4 +1514,3 @@ function printInvoice(id) {
   }, 300);
 }
 
-window.printInvoice = printInvoice;
