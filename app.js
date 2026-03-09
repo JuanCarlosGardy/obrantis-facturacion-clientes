@@ -826,7 +826,7 @@ function renderInvoicesTable(items = invoices) {
       <td>${escapeHtml(formatCurrency(invoice.vatTotal))}</td>
       <td>${escapeHtml(formatCurrency(invoice.totalAmount))}</td>
       <td><span class="${getPaymentBadgeClass(invoice.paymentStatus)}">${escapeHtml(invoice.paymentStatus || "-")}</span></td>
-            <td>
+      <td>
         <div class="row-actions">
           <button type="button" class="btn-small" onclick="printInvoice('${invoice.id}')">Imprimir</button>
           <button type="button" class="btn-small" onclick="editInvoice('${invoice.id}')">Editar</button>
