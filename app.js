@@ -1,3 +1,6 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
 const menuButtons = document.querySelectorAll(".menu-btn");
 const views = document.querySelectorAll(".view");
 const viewTitle = document.getElementById("viewTitle");
