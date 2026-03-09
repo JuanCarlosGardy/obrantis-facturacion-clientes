@@ -98,6 +98,17 @@ const loginEmailInput = document.getElementById("loginEmail");
 const loginPasswordInput = document.getElementById("loginPassword");
 const authMessage = document.getElementById("authMessage");
 const btnLogout = document.getElementById("btnLogout");
+function showAuthScreen(message = "") {
+  if (authScreen) authScreen.classList.remove("hidden");
+  if (appShell) appShell.classList.add("hidden");
+  if (authMessage) authMessage.textContent = message;
+}
+
+function showAppScreen() {
+  if (authScreen) authScreen.classList.add("hidden");
+  if (appShell) appShell.classList.remove("hidden");
+  if (authMessage) authMessage.textContent = "";
+}
 function generateClientId() {
   return "CLI-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
 }
@@ -1330,4 +1341,22 @@ if (loginForm) {
     }
   });
 }
+onAuthStateChanged(auth, (user) => {
+  console.log("Estado de autenticación:", user);
 
+  if (user) {
+    showAppScreen();
+  } else {
+    showAuthScreen();
+  }
+});
+if (btnLogout) {
+  btnLogout.addEventListener("click", async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error cerrando sesión:", error);
+      alert("No se pudo cerrar la sesión.");
+    }
+  });
+}
