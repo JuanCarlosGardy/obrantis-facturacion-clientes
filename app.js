@@ -1294,5 +1294,40 @@ fillInvoiceClientOptions();
 fillInvoiceProjectOptions();
 resetInvoiceForm();
 renderInvoicesTable();
+if (loginForm) {
+  loginForm.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
 
+    const email = loginEmailInput.value.trim();
+    const password = loginPasswordInput.value;
+
+    if (authMessage) authMessage.textContent = "Accediendo...";
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+
+      if (loginForm) loginForm.reset();
+
+    } catch (error) {
+
+      console.error("Error Firebase:", error);
+
+      let message = "No se pudo iniciar sesión.";
+
+      if (error.code === "auth/invalid-credential") {
+        message = "Correo o contraseña incorrectos.";
+      } else if (error.code === "auth/user-not-found") {
+        message = "Ese usuario no existe.";
+      } else if (error.code === "auth/wrong-password") {
+        message = "La contraseña no es correcta.";
+      } else if (error.code === "auth/invalid-email") {
+        message = "El correo no es válido.";
+      } else if (error.code === "auth/unauthorized-domain") {
+        message = "Este dominio no está autorizado en Firebase.";
+      }
+
+      if (authMessage) authMessage.textContent = message;
+    }
+  });
+}
 
