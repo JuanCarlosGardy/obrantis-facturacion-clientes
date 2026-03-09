@@ -130,7 +130,40 @@ function renderClientsTable(items = clients) {
     </tr>
   `).join("");
 }
+function printInvoice(id) {
+  const invoice = invoices.find((item) => item.id === id);
 
+  if (!invoice) {
+    alert("No se encontró la factura.");
+    return;
+  }
+
+  const printWindow = window.open("", "_blank", "width=1000,height=800");
+
+  if (!printWindow) {
+    alert("El navegador bloqueó la ventana de impresión.");
+    return;
+  }
+
+  const html = `
+  <html>
+  <head>
+  <title>Factura ${invoice.invoiceNumber}</title>
+  </head>
+  <body>
+  <h1>Factura ${invoice.invoiceNumber}</h1>
+  <p>Cliente: ${invoice.clientName}</p>
+  <p>Concepto: ${invoice.concept}</p>
+  <p>Total: ${invoice.totalAmount}</p>
+  </body>
+  </html>
+  `;
+
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.print();
+}
+window.printInvoice = printInvoice;
 function filterClients() {
   const search = (clientSearchInput.value || "").trim().toLowerCase();
 
