@@ -872,12 +872,13 @@ function deleteInvoice(id) {
   const ok = window.confirm(`¿Eliminar la factura "${invoice.invoiceNumber}"?`);
   if (!ok) return;
 
-  invoices = invoices.filter((item) => item.id !== id);
+   invoices = invoices.filter((item) => item.id !== id);
 
   if (editingInvoiceId === id) {
     resetInvoiceForm();
   }
 
+  saveInvoicesToStorage();
   filterInvoices();
 }
 
@@ -945,12 +946,13 @@ if (invoiceForm) {
       return;
     }
 
-    if (editingInvoiceId) {
+       if (editingInvoiceId) {
       invoices = invoices.map((item) => item.id === editingInvoiceId ? data : item);
     } else {
       invoices.unshift(data);
     }
 
+    saveInvoicesToStorage();
     resetInvoiceForm();
     filterInvoices();
   });
