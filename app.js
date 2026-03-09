@@ -7,13 +7,13 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
 const firebaseConfig = {
-  apiKey: "AIzaSyDwk0BsboOrQs27Kk06QOxxcdwfmtj2Mgs",
-  authDomain: "obrantis-facturacion-clientes.firebaseapp.com",
-  projectId: "obrantis-facturacion-clientes",
-  storageBucket: "obrantis-facturacion-clientes.firebasestorage.app",
-  messagingSenderId: "963442674603",
-  appId: "1:963442674603:web:1a06582acb9857cf7aa0ee"
-};
+    apiKey: "AIzaSyDwk0BsboOrQs27Kk06QOxxcdwfmtj2Mgs",
+    authDomain: "obrantis-facturacion-clientes.firebaseapp.com",
+    projectId: "obrantis-facturacion-clientes",
+    storageBucket: "obrantis-facturacion-clientes.firebasestorage.app",
+    messagingSenderId: "963442674603",
+    appId: "1:963442674603:web:1a06582acb9857cf7aa0ee"
+  };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
