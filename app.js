@@ -281,10 +281,6 @@ function saveClientsToStorage() {
   localStorage.setItem(STORAGE_KEYS.clients, JSON.stringify(clients));
 }
 
-function saveProjectsToStorage() {
-  localStorage.setItem(STORAGE_KEYS.projects, JSON.stringify(projects));
-}
-
 function saveInvoicesToStorage() {
   localStorage.setItem(STORAGE_KEYS.invoices, JSON.stringify(invoices));
 }
@@ -296,16 +292,6 @@ function loadClientsFromStorage() {
   } catch (error) {
     console.error("Error cargando clientes desde localStorage:", error);
     clients = [];
-  }
-}
-
-function loadProjectsFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.projects);
-    projects = raw ? JSON.parse(raw) : [];
-  } catch (error) {
-    console.error("Error cargando obras desde localStorage:", error);
-    projects = [];
   }
 }
 
@@ -321,7 +307,6 @@ function loadInvoicesFromStorage() {
 
 function loadAllFromStorage() {
   loadClientsFromStorage();
-  loadProjectsFromStorage();
   loadInvoicesFromStorage();
 }
 function editClient(id) {
