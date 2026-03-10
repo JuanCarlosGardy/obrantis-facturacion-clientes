@@ -1230,7 +1230,7 @@ function printInvoice(id) {
 
 .totals tr.final strong {
   font-size: 18px;
-}  `
+}  
         .notes {
           margin-top: 24px;
           border-top: 1px solid #d1d5db;
