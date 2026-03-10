@@ -1230,19 +1230,32 @@ function printInvoice(id) {
     <body>
       <div class="sheet">
         <div class="header">
-          <div class="company">
-            <h1>OBRANTIS S.L.</h1>
-            <p><strong>Administración</strong></p>
-            <p>Tel.: 610 673 307</p>
-            <p>Email: administracion@obrantis.com</p>
-          </div>
+  <div class="company">
+    <div style="display:flex; align-items:flex-start; gap:14px;">
+      <img
+        src="logo-obrantis.png"
+        alt="Logo OBRANTIS"
+        style="width:90px; height:auto; object-fit:contain;"
+      />
+      <div>
+        <h1 style="margin:0 0 6px 0;">OBRANTIS S.L.</h1>
+        <p style="margin:2px 0;"><strong>Reformas y Construcción</strong></p>
+        <p style="margin:2px 0;"><strong>NIF:</strong> B26636761</p>
+        <p style="margin:2px 0;">Avda. Castilla-La Mancha, 22</p>
+        <p style="margin:2px 0;">45200 – Illescas – Toledo</p>
+        <p style="margin:2px 0;">Email: contacto@obrantis.com</p>
+      </div>
+    </div>
+  </div>
 
-          <div class="meta">
-            <p><strong>FACTURA</strong></p>
-            <p><strong>Nº:</strong> ${escapeHtml(invoice.invoiceNumber || "-")}</p>
-            <p><strong>Fecha:</strong> ${escapeHtml(formatShortDate(invoice.invoiceDate))}</p>
-            <p><strong>Estado de cobro:</strong> ${escapeHtml(invoice.paymentStatus || "-")}</p>
-          </div>
+  <div class="meta">
+    <p><strong>FACTURA</strong></p>
+    <p><strong>Nº:</strong> ${escapeHtml(invoice.invoiceNumber || "-")}</p>
+    <p><strong>Fecha:</strong> ${escapeHtml(formatShortDate(invoice.invoiceDate))}</p>
+    <p><strong>Forma de pago:</strong> ${escapeHtml(invoice.paymentMethod || invoice.paymentType || invoice.paymentForm || "-")}</p>
+    <p><strong>Estado de cobro:</strong> ${escapeHtml(invoice.paymentStatus || "-")}</p>
+  </div>
+</div>
         </div>
 
         <div class="grid">
