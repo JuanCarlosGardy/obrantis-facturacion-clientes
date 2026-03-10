@@ -547,6 +547,162 @@ function generateReport() {
     projectRows
   };
 }
+function escapeCsvValue(value) {
+  const safeValue = String(value ?? "").replaceAll('"', '""');
+  return `"${safeValue}"`;
+}
+function getReportFileBaseName(report) {
+  if (!report || !report.range) {
+    return "informe-facturacion";
+  }
+
+  const { type, year } = report.range;
+
+  if (type === "monthly") {
+    const month = Number(reportMonthSelect?.value || 0) + 1;
+    return `informe-facturacion-mensual-${year}-${String(month).padStart(2, "0")}`;
+  }
+
+  if (type === "quarterly") {
+    const quarter = Number(reportQuarterSelect?.value || 1);
+    return `informe-facturacion-trimestral-${year}-T${quarter}`;
+  }
+
+  return `informe-facturacion-anual-${year}`;
+}
+function buildReportCsvContent(report) {
+  if (!report) return "";
+
+  const lines = [];
+
+  lines.push("RESUMEN GENERAL");
+  lines.push([
+    escapeCsvValue("Periodo"),
+    escapeCsvValue(report.range?.label || "")
+  ].join(";"));
+
+  lines.push([
+    escapeCsvValue("Facturas emitidas"),
+    escapeCsvValue(report.summaryData?.invoiceCount ?? 0)
+  ].join(";"));
+
+  lines.push([
+    escapeCsvValue("Base imponible total"),
+    escapeCsvValue((report.summaryData?.baseTotal ?? 0).toFixed(2))
+  ].join(";"));
+
+  lines.push([
+    escapeCsvValue("IVA total"),
+    escapeCsvValue((report.summaryData?.vatTotal ?? 0).toFixed(2))
+  ].join(";"));
+
+  lines.push([
+    escapeCsvValue("Total facturado"),
+    escapeCsvValue((report.summaryData?.grandTotal ?? 0).toFixed(2))
+  ].join(";"));
+
+  lines.push([
+    escapeCsvValue("Facturas cobradas"),
+    escapeCsvValue(report.summaryData?.paidCount ?? 0)
+  ].join(";"));
+
+  lines.push([
+    escapeCsvValue("Facturas pendientes"),
+    escapeCsvValue(report.summaryData?.pendingCount ?? 0)
+  ].join(";"));
+
+  lines.push("");
+  lines.push("DETALLE DE FACTURAS");
+  lines.push([
+    escapeCsvValue("Número"),
+    escapeCsvValue("Fecha"),
+    escapeCsvValue("Cliente"),
+    escapeCsvValue("Obra"),
+    escapeCsvValue("Estado"),
+    escapeCsvValue("Base"),
+    escapeCsvValue("IVA"),
+    escapeCsvValue("Total")
+  ].join(";"));
+
+  for (const invoice of report.invoices || []) {
+    lines.push([
+      escapeCsvValue(invoice.invoiceNumber || ""),
+      escapeCsvValue(formatReportDate(invoice.invoiceDate || "")),
+      escapeCsvValue(invoice.clientName || ""),
+      escapeCsvValue(invoice.projectName || ""),
+      escapeCsvValue(getInvoicePaymentStatus(invoice)),
+      escapeCsvValue(Number(invoice.baseTotal || 0).toFixed(2)),
+      escapeCsvValue(Number(invoice.vatTotal || 0).toFixed(2)),
+      escapeCsvValue(Number(invoice.totalAmount || 0).toFixed(2))
+    ].join(";"));
+  }
+
+  lines.push("");
+  lines.push("RESUMEN POR CLIENTE");
+  lines.push([
+    escapeCsvValue("Cliente"),
+    escapeCsvValue("Base"),
+    escapeCsvValue("IVA"),
+    escapeCsvValue("Total")
+  ].join(";"));
+
+  for (const row of report.clientRows || []) {
+    lines.push([
+      escapeCsvValue(row.name || ""),
+      escapeCsvValue(Number(row.baseTotal || 0).toFixed(2)),
+      escapeCsvValue(Number(row.vatTotal || 0).toFixed(2)),
+      escapeCsvValue(Number(row.totalAmount || 0).toFixed(2))
+    ].join(";"));
+  }
+
+  lines.push("");
+  lines.push("RESUMEN POR OBRA");
+  lines.push([
+    escapeCsvValue("Obra"),
+    escapeCsvValue("Base"),
+    escapeCsvValue("IVA"),
+    escapeCsvValue("Total")
+  ].join(";"));
+
+  for (const row of report.projectRows || []) {
+    lines.push([
+      escapeCsvValue(row.name || ""),
+      escapeCsvValue(Number(row.baseTotal || 0).toFixed(2)),
+      escapeCsvValue(Number(row.vatTotal || 0).toFixed(2)),
+      escapeCsvValue(Number(row.totalAmount || 0).toFixed(2))
+    ].join(";"));
+  }
+
+  return "\uFEFF" + lines.join("\n");
+}
+function downloadTextFile(content, fileName, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function exportReportCsv() {
+  if (!lastGeneratedReport) {
+    alert("Primero debes generar un informe.");
+    return;
+  }
+
+  const csvContent = buildReportCsvContent(lastGeneratedReport);
+  const fileBaseName = getReportFileBaseName(lastGeneratedReport);
+
+  downloadTextFile(
+    csvContent,
+    `${fileBaseName}.csv`,
+    "text/csv;charset=utf-8;"
+  );
+}
 function showAppScreen() {
   if (authScreen) authScreen.classList.add("hidden");
   if (appShell) appShell.classList.remove("hidden");
@@ -565,6 +721,9 @@ function resetClientForm() {
 }
 if (btnGenerateReport) {
   btnGenerateReport.addEventListener("click", generateReport);
+}
+if (btnExportReportCsv) {
+  btnExportReportCsv.addEventListener("click", exportReportCsv);
 }
 function getClientFormData() {
   return {
