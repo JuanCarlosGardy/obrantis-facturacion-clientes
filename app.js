@@ -108,6 +108,16 @@ async function deleteInvoiceFromFirestore(invoiceId) {
     throw error;
   }
 }
+async function loadInvoicesFromFirestore() {
+  try {
+    invoices = await fetchInvoicesFromFirestore();
+    renderInvoicesTable();
+  } catch (error) {
+    console.error("Error cargando listado de facturas:", error);
+    invoices = [];
+    renderInvoicesTable();
+  }
+}
 const menuButtons = document.querySelectorAll(".menu-btn");
 const views = document.querySelectorAll(".view");
 const viewTitle = document.getElementById("viewTitle");
@@ -1483,12 +1493,15 @@ onAuthStateChanged(auth, async (user) => {
     showAppScreen();
     await loadClientsFromFirestore();
     await loadProjectsFromFirestore();
+    await loadInvoicesFromFirestore();
   } else {
     showAuthScreen();
     clients = [];
     projects = [];
+    invoices = [];
     renderClientsTable();
     renderProjectsTable();
+    renderInvoicesTable();
   }
 });
 if (btnLogout) {
