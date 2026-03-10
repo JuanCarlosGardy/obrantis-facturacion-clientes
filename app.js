@@ -202,6 +202,21 @@ menuButtons.forEach((button) => {
     activateView(targetView);
   });
 });
+if (btnQuickNewClient) {
+  btnQuickNewClient.addEventListener("click", () => activateView("clients"));
+}
+
+if (btnQuickNewProject) {
+  btnQuickNewProject.addEventListener("click", () => activateView("projects"));
+}
+
+if (btnQuickNewInvoice) {
+  btnQuickNewInvoice.addEventListener("click", () => activateView("invoices"));
+}
+
+if (btnQuickReports) {
+  btnQuickReports.addEventListener("click", () => activateView("reports"));
+}
 let clients = [];
 let editingClientId = null;
 let lastGeneratedReport = null;
