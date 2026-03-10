@@ -334,10 +334,6 @@ function saveClientsToStorage() {
   localStorage.setItem(STORAGE_KEYS.clients, JSON.stringify(clients));
 }
 
-function saveInvoicesToStorage() {
-  localStorage.setItem(STORAGE_KEYS.invoices, JSON.stringify(invoices));
-}
-
 function loadClientsFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.clients);
@@ -348,20 +344,9 @@ function loadClientsFromStorage() {
   }
 }
 
-function loadInvoicesFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.invoices);
-    invoices = raw ? JSON.parse(raw) : [];
-  } catch (error) {
-    console.error("Error cargando facturas desde localStorage:", error);
-    invoices = [];
-  }
-}
-
 function loadAllFromStorage() {
   loadClientsFromStorage();
-  loadInvoicesFromStorage();
-}
+  }
 function editClient(id) {
   const client = clients.find((item) => item.id === id);
   if (!client) return;
