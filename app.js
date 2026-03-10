@@ -29,6 +29,40 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const clientsCollection = collection(db, "clients");
 const projectsCol = collection(db, "projects");
+async function fetchProjectsFromFirestore() {
+  try {
+    const snapshot = await getDocs(projectsCol);
+
+    return snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }));
+  } catch (error) {
+    console.error("Error cargando obras desde Firestore:", error);
+    return [];
+  }
+}
+async function saveProjectToFirestore(projectData) {
+  try {
+    const docRef = await addDoc(projectsCol, {
+      ...projectData,
+      createdAt: serverTimestamp()
+    });
+
+    return docRef.id;
+  } catch (error) {
+    console.error("Error guardando obra en Firestore:", error);
+    throw error;
+  }
+}
+async function deleteProjectFromFirestore(projectId) {
+  try {
+    await deleteDoc(doc(db, "projects", projectId));
+  } catch (error) {
+    console.error("Error eliminando obra en Firestore:", error);
+    throw error;
+  }
+}
 const menuButtons = document.querySelectorAll(".menu-btn");
 const views = document.querySelectorAll(".view");
 const viewTitle = document.getElementById("viewTitle");
