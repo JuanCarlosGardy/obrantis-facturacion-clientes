@@ -9,7 +9,8 @@ import {
   onSnapshot,
   serverTimestamp,
   query,
-  orderBy
+  orderBy,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import {
   getAuth,
@@ -46,12 +47,15 @@ async function fetchProjectsFromFirestore() {
 }
 async function saveProjectToFirestore(projectData) {
   try {
-    const docRef = await addDoc(projectsCol, {
-      ...projectData,
-      createdAt: serverTimestamp()
-    });
+    const projectId = projectData.id || generateProjectId();
 
-    return docRef.id;
+    await setDoc(doc(db, "projects", projectId), {
+      ...projectData,
+      id: projectId,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    return projectId;
   } catch (error) {
     console.error("Error guardando obra en Firestore:", error);
     throw error;
@@ -653,55 +657,52 @@ if (projectSearchInput) {
 }
 
 if (projectForm) {
-  projectForm.addEventListener("submit", (ev) => {
-    ev.preventDefault();
+ projectForm.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
 
-    const selectedClientId = projectClientIdInput.value;
-    const selectedClient = clients.find((client) => client.id === selectedClientId) || null;
+  const selectedClientId = projectClientIdInput.value;
+  const selectedClient = clients.find((client) => client.id === selectedClientId) || null;
 
-    const data = {
-      id: editingProjectId || generateProjectId(),
-      clientId: selectedClient ? selectedClient.id : "",
-      clientName: selectedClient ? selectedClient.name : "",
-      status: projectStatusInput.value,
-      name: projectNameInput.value.trim(),
-      reference: projectReferenceInput.value.trim(),
-      startDate: projectStartDateInput.value,
-      endDate: projectEndDateInput.value,
-      isActive: projectIsActiveInput.value === "true",
-      address: projectAddressInput.value.trim(),
-      city: projectCityInput.value.trim(),
-      province: projectProvinceInput.value.trim(),
-      postalCode: projectPostalCodeInput.value.trim(),
-      notes: projectNotesInput.value.trim()
-    };
+  const data = {
+    id: editingProjectId || generateProjectId(),
+    clientId: selectedClient ? selectedClient.id : "",
+    clientName: selectedClient ? selectedClient.name : "",
+    status: projectStatusInput.value,
+    name: projectNameInput.value.trim(),
+    reference: projectReferenceInput.value.trim(),
+    startDate: projectStartDateInput.value,
+    endDate: projectEndDateInput.value,
+    isActive: projectIsActiveInput.value === "true",
+    address: projectAddressInput.value.trim(),
+    city: projectCityInput.value.trim(),
+    province: projectProvinceInput.value.trim(),
+    postalCode: projectPostalCodeInput.value.trim(),
+    notes: projectNotesInput.value.trim()
+  };
 
-    if (!data.clientId) {
-      alert("Debes seleccionar un cliente para la obra.");
-      return;
-    }
+  if (!data.clientId) {
+    alert("Debes seleccionar un cliente para la obra.");
+    return;
+  }
 
-    if (!data.name) {
-      alert("Debes indicar el nombre o referencia de la obra.");
-      return;
-    }
+  if (!data.name) {
+    alert("Debes indicar el nombre o referencia de la obra.");
+    return;
+  }
 
-    if (editingProjectId) {
-      projects = projects.map((item) => item.id === editingProjectId ? data : item);
-    } else {
-      projects.unshift(data);
-    }
-
-    if (typeof saveProjectsToStorage === "function") {
-      saveProjectsToStorage();
-    }
+  try {
+    await saveProjectToFirestore(data);
+    await loadProjectsFromFirestore();
 
     resetProjectForm();
-    renderProjectsTable();
     filterProjects();
 
     alert("Obra guardada correctamente.");
-  });
+  } catch (error) {
+    console.error("Error guardando obra:", error);
+    alert("No se pudo guardar la obra en Firestore.");
+  }
+});
 }
 
 const originalResetClientForm = resetClientForm;
