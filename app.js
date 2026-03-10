@@ -1551,60 +1551,6 @@ function exportReportExcel() {
   const fileBaseName = getReportFileBaseName(lastGeneratedReport);
   XLSX.writeFile(workbook, `${fileBaseName}.xlsx`);
 }
-function buildGroupedReportHtmlTable(title, rows, emptyText) {
-  const safeTitle = getSafeReportHtml(title);
-
-  if (!rows || !rows.length) {
-    return `
-      <div class="report-section">
-        <h3>${safeTitle}</h3>
-        <table class="report-print-table report-small-table">
-          <thead>
-            <tr>
-              <th>Concepto</th>
-              <th class="num">Base</th>
-              <th class="num">IVA</th>
-              <th class="num">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colspan="4">${getSafeReportHtml(emptyText)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  const bodyHtml = rows.map((row) => `
-    <tr>
-      <td>${getSafeReportHtml(row.name || "")}</td>
-      <td class="num">${getSafeReportHtml(formatReportCurrency(row.baseTotal || 0))}</td>
-      <td class="num">${getSafeReportHtml(formatReportCurrency(row.vatTotal || 0))}</td>
-      <td class="num">${getSafeReportHtml(formatReportCurrency(row.totalAmount || 0))}</td>
-    </tr>
-  `).join("");
-
-  return `
-    <div class="report-section">
-      <h3>${safeTitle}</h3>
-      <table class="report-print-table report-small-table">
-        <thead>
-          <tr>
-            <th>Concepto</th>
-            <th class="num">Base</th>
-            <th class="num">IVA</th>
-            <th class="num">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${bodyHtml}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
 
 function buildReportSummaryHtml(report) {
   const summary = report?.summaryData || {};
