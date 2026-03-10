@@ -7,7 +7,9 @@ import {
   deleteDoc,
   getDocs,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  query,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import {
   getAuth,
