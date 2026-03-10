@@ -806,6 +806,403 @@ function isExcelLibraryAvailable() {
   function getSafeReportHtml(value) {
   return escapeHtml(value ?? "");
 }
+
+function buildReportInvoicesHtmlTable(report) {
+  const rows = report?.invoices || [];
+
+  if (!rows.length) {
+    return `
+      <table class="report-print-table">
+        <thead>
+          <tr>
+            <th>Factura</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Obra</th>
+            <th>Estado</th>
+            <th class="num">Base</th>
+            <th class="num">IVA</th>
+            <th class="num">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="8">No hay facturas en el periodo seleccionado.</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+  }
+
+  const bodyHtml = rows.map((invoice) => `
+    <tr>
+      <td>${getSafeReportHtml(invoice.invoiceNumber || "")}</td>
+      <td>${getSafeReportHtml(formatReportDate(invoice.invoiceDate || ""))}</td>
+      <td>${getSafeReportHtml(invoice.clientName || "")}</td>
+      <td>${getSafeReportHtml(invoice.projectName || "")}</td>
+      <td>${getSafeReportHtml(getInvoicePaymentStatus(invoice))}</td>
+      <td class="num">${getSafeReportHtml(formatReportCurrency(invoice.baseTotal || 0))}</td>
+      <td class="num">${getSafeReportHtml(formatReportCurrency(invoice.vatTotal || 0))}</td>
+      <td class="num">${getSafeReportHtml(formatReportCurrency(invoice.totalAmount || 0))}</td>
+    </tr>
+  `).join("");
+
+  return `
+    <table class="report-print-table">
+      <thead>
+        <tr>
+          <th>Factura</th>
+          <th>Fecha</th>
+          <th>Cliente</th>
+          <th>Obra</th>
+          <th>Estado</th>
+          <th class="num">Base</th>
+          <th class="num">IVA</th>
+          <th class="num">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${bodyHtml}
+      </tbody>
+    </table>
+  `;
+}
+
+function buildGroupedReportHtmlTable(title, rows, emptyText) {
+  const safeTitle = getSafeReportHtml(title);
+
+  if (!rows || !rows.length) {
+    return `
+      <div class="report-section">
+        <h3>${safeTitle}</h3>
+        <table class="report-print-table report-small-table">
+          <thead>
+            <tr>
+              <th>Concepto</th>
+              <th class="num">Base</th>
+              <th class="num">IVA</th>
+              <th class="num">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4">${getSafeReportHtml(emptyText)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  const bodyHtml = rows.map((row) => `
+    <tr>
+      <td>${getSafeReportHtml(row.name || "")}</td>
+      <td class="num">${getSafeReportHtml(formatReportCurrency(row.baseTotal || 0))}</td>
+      <td class="num">${getSafeReportHtml(formatReportCurrency(row.vatTotal || 0))}</td>
+      <td class="num">${getSafeReportHtml(formatReportCurrency(row.totalAmount || 0))}</td>
+    </tr>
+  `).join("");
+
+  return `
+    <div class="report-section">
+      <h3>${safeTitle}</h3>
+      <table class="report-print-table report-small-table">
+        <thead>
+          <tr>
+            <th>Concepto</th>
+            <th class="num">Base</th>
+            <th class="num">IVA</th>
+            <th class="num">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bodyHtml}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function buildReportSummaryHtml(report) {
+  const summary = report?.summaryData || {};
+
+  return `
+    <div class="report-summary-grid-print">
+      <div class="report-summary-card-print">
+        <div class="label">Facturas emitidas</div>
+        <div class="value">${getSafeReportHtml(summary.invoiceCount ?? 0)}</div>
+      </div>
+      <div class="report-summary-card-print">
+        <div class="label">Base imponible total</div>
+        <div class="value">${getSafeReportHtml(formatReportCurrency(summary.baseTotal || 0))}</div>
+      </div>
+      <div class="report-summary-card-print">
+        <div class="label">IVA total</div>
+        <div class="value">${getSafeReportHtml(formatReportCurrency(summary.vatTotal || 0))}</div>
+      </div>
+      <div class="report-summary-card-print">
+        <div class="label">Total facturado</div>
+        <div class="value">${getSafeReportHtml(formatReportCurrency(summary.grandTotal || 0))}</div>
+      </div>
+      <div class="report-summary-card-print">
+        <div class="label">Cobradas</div>
+        <div class="value">${getSafeReportHtml(summary.paidCount ?? 0)}</div>
+      </div>
+      <div class="report-summary-card-print">
+        <div class="label">Pendientes</div>
+        <div class="value">${getSafeReportHtml(summary.pendingCount ?? 0)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function exportReportPdf() {
+  if (!lastGeneratedReport) {
+    alert("Primero debes generar un informe.");
+    return;
+  }
+
+  const report = lastGeneratedReport;
+  const reportTitle = report?.range?.label || "Informe de facturación";
+  const generatedAt = new Date().toLocaleString("es-ES");
+
+  const summaryHtml = buildReportSummaryHtml(report);
+  const invoicesTableHtml = buildReportInvoicesHtmlTable(report);
+  const clientsTableHtml = buildGroupedReportHtmlTable(
+    "Resumen por cliente",
+    report.clientRows || [],
+    "Sin datos para clientes en este periodo."
+  );
+  const projectsTableHtml = buildGroupedReportHtmlTable(
+    "Resumen por obra",
+    report.projectRows || [],
+    "Sin datos para obras en este periodo."
+  );
+
+  const printWindow = window.open("", "_blank", "width=1200,height=900");
+
+  if (!printWindow) {
+    alert("No se pudo abrir la ventana de impresión. Revisa si el navegador bloqueó la ventana emergente.");
+    return;
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>${getSafeReportHtml(reportTitle)}</title>
+      <style>
+        @page {
+          size: A4;
+          margin: 12mm;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
+        html, body {
+          margin: 0;
+          padding: 0;
+          font-family: Arial, sans-serif;
+          color: #111;
+          background: #fff;
+        }
+
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          padding: 0;
+        }
+
+        .report-print {
+          width: 100%;
+        }
+
+        .report-header {
+          display: flex;
+          justify-content: space-between;
+          gap: 20px;
+          border-bottom: 2px solid #111;
+          padding-bottom: 12px;
+          margin-bottom: 18px;
+        }
+
+        .report-brand h1 {
+          margin: 0 0 6px 0;
+          font-size: 24px;
+        }
+
+        .report-brand .sub {
+          margin: 0;
+          font-size: 13px;
+          color: #444;
+        }
+
+        .report-meta {
+          text-align: right;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .report-title-block {
+          margin-bottom: 18px;
+        }
+
+        .report-title-block h2 {
+          margin: 0 0 6px 0;
+          font-size: 20px;
+        }
+
+        .report-title-block p {
+          margin: 0;
+          font-size: 12px;
+          color: #555;
+        }
+
+        .report-summary-grid-print {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+          margin-bottom: 22px;
+        }
+
+        .report-summary-card-print {
+          border: 1px solid #d8d8d8;
+          border-radius: 8px;
+          padding: 10px;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .report-summary-card-print .label {
+          font-size: 11px;
+          color: #666;
+          margin-bottom: 6px;
+        }
+
+        .report-summary-card-print .value {
+          font-size: 18px;
+          font-weight: 700;
+        }
+
+        .report-section {
+          margin-top: 20px;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .report-section h3 {
+          margin: 0 0 10px 0;
+          font-size: 16px;
+        }
+
+        .report-print-table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+          page-break-after: auto;
+        }
+
+        .report-print-table thead {
+          display: table-header-group;
+        }
+
+        .report-print-table tr {
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .report-print-table th,
+        .report-print-table td {
+          border: 1px solid #d0d0d0;
+          padding: 7px 6px;
+          font-size: 11px;
+          vertical-align: top;
+          word-break: break-word;
+          overflow-wrap: break-word;
+        }
+
+        .report-print-table th {
+          background: #f3f3f3;
+          text-align: left;
+        }
+
+        .report-print-table .num {
+          text-align: right;
+          white-space: nowrap;
+        }
+
+        .report-small-table {
+          table-layout: auto;
+        }
+
+        @media print {
+          body {
+            margin: 0;
+          }
+
+          .report-print-table tr,
+          .report-section,
+          .report-summary-card-print {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="report-print">
+        <div class="report-header">
+          <div class="report-brand">
+            <h1>OBRANTIS S.L.</h1>
+            <p class="sub">Reformas y Construcción</p>
+            <p class="sub">NIF: B26636761</p>
+            <p class="sub">Avda. Castilla-La Mancha, 22 · 45200 Illescas – Toledo</p>
+            <p class="sub">contacto@obrantis.com</p>
+          </div>
+          <div class="report-meta">
+            <div><strong>Documento:</strong> Informe de facturación</div>
+            <div><strong>Periodo:</strong> ${getSafeReportHtml(reportTitle)}</div>
+            <div><strong>Generado:</strong> ${getSafeReportHtml(generatedAt)}</div>
+          </div>
+        </div>
+
+        <div class="report-title-block">
+          <h2>${getSafeReportHtml(reportTitle)}</h2>
+          <p>Resumen económico y detalle de facturas emitidas en el periodo seleccionado.</p>
+        </div>
+
+        ${summaryHtml}
+
+        <div class="report-section">
+          <h3>Detalle de facturas</h3>
+          ${invoicesTableHtml}
+        </div>
+
+        ${clientsTableHtml}
+
+        ${projectsTableHtml}
+      </div>
+
+      <script>
+        window.onload = function() {
+          window.focus();
+          window.print();
+        };
+      </script>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+}
+  function getSafeReportHtml(value) {
+  return escapeHtml(value ?? "");
+}
   function buildReportInvoicesHtmlTable(report) {
   const rows = report?.invoices || [];
 
