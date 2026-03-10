@@ -1202,18 +1202,35 @@ function printInvoice(id) {
           text-align: left;
         }
         .totals {
-          margin-left: auto;
-          width: 320px;
-          border-collapse: collapse;
-        }
-        .totals td {
-          font-size: 14px;
-        }
-        .totals .final td {
-          font-weight: 700;
-          font-size: 16px;
-          background: #f9fafb;
-        }
+  width: 320px;
+  margin-left: auto;
+  margin-top: 18px;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fafafa;
+}
+
+.totals td {
+  padding: 10px 14px;
+  font-size: 14px;
+  border-bottom: 1px solid #e7e7e7;
+}
+
+.totals tr:last-child td {
+  border-bottom: none;
+}
+
+.totals tr.final td {
+  background: #f1f1f1;
+  font-size: 16px;
+}
+
+.totals tr.final strong {
+  font-size: 18px;
+}  `;
         .notes {
           margin-top: 24px;
           border-top: 1px solid #d1d5db;
