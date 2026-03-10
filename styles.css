@@ -551,3 +551,29 @@ textarea {
 .logout-btn:hover {
   background: rgba(255,255,255,0.08);
 }
+.quick-actions-card {
+  margin-top: 20px;
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.quick-action-btn {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.quick-action-btn:hover {
+  background: #f7f7f7;
+}
