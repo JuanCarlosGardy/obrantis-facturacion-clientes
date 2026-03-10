@@ -32,6 +32,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const clientsCollection = collection(db, "clients");
 const projectsCol = collection(db, "projects");
+const invoicesCol = collection(db, "invoices");
 async function fetchProjectsFromFirestore() {
   try {
     const snapshot = await getDocs(projectsCol);
@@ -66,6 +67,44 @@ async function deleteProjectFromFirestore(projectId) {
     await deleteDoc(doc(db, "projects", projectId));
   } catch (error) {
     console.error("Error eliminando obra en Firestore:", error);
+    throw error;
+  }
+}
+async function fetchInvoicesFromFirestore() {
+  try {
+    const snapshot = await getDocs(invoicesCol);
+
+    return snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }));
+  } catch (error) {
+    console.error("Error cargando facturas desde Firestore:", error);
+    return [];
+  }
+}
+
+async function saveInvoiceToFirestore(invoiceData) {
+  try {
+    const invoiceId = invoiceData.id;
+
+    await setDoc(doc(db, "invoices", invoiceId), {
+      ...invoiceData,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    return invoiceId;
+  } catch (error) {
+    console.error("Error guardando factura en Firestore:", error);
+    throw error;
+  }
+}
+
+async function deleteInvoiceFromFirestore(invoiceId) {
+  try {
+    await deleteDoc(doc(db, "invoices", invoiceId));
+  } catch (error) {
+    console.error("Error eliminando factura en Firestore:", error);
     throw error;
   }
 }
