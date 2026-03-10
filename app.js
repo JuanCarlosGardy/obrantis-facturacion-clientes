@@ -3,12 +3,11 @@ import {
   getFirestore,
   collection,
   addDoc,
-  getDocs,
-  deleteDoc,
   doc,
-  updateDoc,
-  orderBy,
-  query
+  deleteDoc,
+  getDocs,
+  onSnapshot,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import {
   getAuth,
@@ -29,6 +28,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const clientsCollection = collection(db, "clients");
+const projectsCol = collection(db, "projects");
 const menuButtons = document.querySelectorAll(".menu-btn");
 const views = document.querySelectorAll(".view");
 const viewTitle = document.getElementById("viewTitle");
