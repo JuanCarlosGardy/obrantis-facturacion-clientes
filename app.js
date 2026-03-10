@@ -114,11 +114,13 @@ async function loadInvoicesFromFirestore() {
   try {
     invoices = await fetchInvoicesFromFirestore();
     renderInvoicesTable();
+    renderDashboardStats();
     refreshNextInvoiceNumber();
   } catch (error) {
     console.error("Error cargando listado de facturas:", error);
     invoices = [];
     renderInvoicesTable();
+    renderDashboardStats();
     refreshNextInvoiceNumber();
   }
 }
