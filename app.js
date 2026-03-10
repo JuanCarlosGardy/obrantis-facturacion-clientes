@@ -289,16 +289,6 @@ function formatReportDate(dateValue) {
   if (Number.isNaN(d.getTime())) return dateValue;
   return d.toLocaleDateString("es-ES");
 }
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
 function getInvoiceDateAsDate(invoice) {
   if (!invoice || !invoice.invoiceDate) return null;
 
