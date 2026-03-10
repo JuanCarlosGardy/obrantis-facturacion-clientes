@@ -1289,9 +1289,22 @@ function printInvoice(id) {
           </div>
 
           <div class="box">
-            <h3>Obra / Trabajo</h3>
-            <p>${escapeHtml(invoice.projectName || "Sin obra asociada")}</p>
-          </div>
+  <h3>Cliente</h3>
+
+  <p><strong>${escapeHtml(invoice.clientName || "-")}</strong></p>
+
+  ${invoice.clientTaxId ? `<p><strong>CIF:</strong> ${escapeHtml(invoice.clientTaxId)}</p>` : ""}
+
+  ${invoice.clientAddress ? `<p>${escapeHtml(invoice.clientAddress)}</p>` : ""}
+
+  ${(invoice.clientPostalCode || invoice.clientCity || invoice.clientProvince)
+    ? `<p>
+        ${escapeHtml(invoice.clientPostalCode || "")}
+        ${escapeHtml(invoice.clientCity || "")}
+        ${invoice.clientProvince ? " - " + escapeHtml(invoice.clientProvince) : ""}
+      </p>`
+    : ""}
+</div>
         </div>
 
         <div class="concept">
