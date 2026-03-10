@@ -78,9 +78,10 @@ async function fetchInvoicesFromFirestore() {
       id: docSnap.id,
       ...docSnap.data()
     }));
-  } catch (error) {
-    console.error("Error cargando facturas desde Firestore:", error);
-    return [];
+    } catch (error) {
+    console.error("Error guardando factura en Firestore:", error);
+    alert("Error Firestore facturas: " + (error.message || error));
+    throw error;
   }
 }
 
