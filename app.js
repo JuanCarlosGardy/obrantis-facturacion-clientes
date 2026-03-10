@@ -1355,8 +1355,7 @@ if (invoiceClientIdInput) {
 
 if (btnShowInvoiceForm) {
   btnShowInvoiceForm.addEventListener("click", () => {
-    fillInvoiceClientOptions();
-    fillInvoiceProjectOptions();
+   resetInvoiceForm();
     document.getElementById("view-invoices")?.scrollIntoView({ behavior: "smooth", block: "start" });
     invoiceNumberInput?.focus();
   });
