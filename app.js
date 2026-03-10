@@ -1435,15 +1435,6 @@ function isExcelLibraryAvailable() {
   printWindow.document.write(html);
   printWindow.document.close();
 }
-  const csvContent = buildReportCsvContent(lastGeneratedReport);
-  const fileBaseName = getReportFileBaseName(lastGeneratedReport);
-
-  downloadTextFile(
-    csvContent,
-    `${fileBaseName}.csv`,
-    "text/csv;charset=utf-8;"
-  );
-}
 function isExcelLibraryAvailable() {
   return typeof XLSX !== "undefined";
 }
