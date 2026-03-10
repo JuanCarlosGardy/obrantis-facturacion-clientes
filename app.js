@@ -1551,10 +1551,6 @@ function exportReportExcel() {
   const fileBaseName = getReportFileBaseName(lastGeneratedReport);
   XLSX.writeFile(workbook, `${fileBaseName}.xlsx`);
 }
-function getSafeReportHtml(value) {
-  return escapeHtml(value ?? "");
-}
-
 function buildReportInvoicesHtmlTable(report) {
   const rows = report?.invoices || [];
 
