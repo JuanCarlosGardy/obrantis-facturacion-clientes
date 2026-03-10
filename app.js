@@ -1,5 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  updateDoc,
+  orderBy,
+  query
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -18,6 +28,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const clientsCollection = collection(db, "clients");
 const menuButtons = document.querySelectorAll(".menu-btn");
 const views = document.querySelectorAll(".view");
 const viewTitle = document.getElementById("viewTitle");
@@ -167,7 +178,27 @@ function renderClientsTable(items = clients) {
     </tr>
   `).join("");
 }
+async function loadClientsFromFirestore() {
+  try {
+    const q = query(clientsCollection, orderBy("name"));
+    const snapshot = await getDocs(q);
 
+    clients = snapshot.docs.map((docItem) => {
+      return {
+        id: docItem.id,
+        ...docItem.data()
+      };
+    });
+
+    renderClientsTable();
+    fillProjectClientOptions();
+    fillInvoiceClientOptions(invoiceClientIdInput?.value || "");
+    fillInvoiceProjectOptions(invoiceClientIdInput?.value || "", invoiceProjectIdInput?.value || "");
+  } catch (error) {
+    console.error("Error cargando clientes desde Firestore:", error);
+    alert("No se pudieron cargar los clientes desde Firestore.");
+  }
+}
 window.printInvoice = printInvoice;
 function filterClients() {
   const search = (clientSearchInput.value || "").trim().toLowerCase();
@@ -275,21 +306,26 @@ function editClient(id) {
   document.getElementById("view-clients")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function deleteClient(id) {
+async function deleteClient(id) {
   const client = clients.find((item) => item.id === id);
   if (!client) return;
 
   const ok = window.confirm(`¿Eliminar el cliente "${client.name}"?`);
   if (!ok) return;
 
-    clients = clients.filter((item) => item.id !== id);
+  try {
+    await deleteDoc(doc(db, "clients", id));
 
-  if (editingClientId === id) {
-    resetClientForm();
+    if (editingClientId === id) {
+      resetClientForm();
+    }
+
+    await loadClientsFromFirestore();
+    alert("Cliente eliminado correctamente.");
+  } catch (error) {
+    console.error("Error eliminando cliente en Firestore:", error);
+    alert("No se pudo eliminar el cliente.");
   }
-
-  saveClientsToStorage();
-  filterClients();
 }
 
 window.editClient = editClient;
@@ -313,7 +349,7 @@ if (clientSearchInput) {
 }
 
 if (clientForm) {
-  clientForm.addEventListener("submit", (ev) => {
+  clientForm.addEventListener("submit", async (ev) => {
     ev.preventDefault();
 
     const data = getClientFormData();
@@ -323,15 +359,38 @@ if (clientForm) {
       return;
     }
 
-       if (editingClientId) {
-      clients = clients.map((item) => item.id === editingClientId ? data : item);
-    } else {
-      clients.unshift(data);
-    }
+    const payload = {
+      name: data.name,
+      taxId: data.taxId,
+      address: data.address,
+      city: data.city,
+      province: data.province,
+      postalCode: data.postalCode,
+      phone: data.phone,
+      email: data.email,
+      contactPerson: data.contactPerson,
+      notes: data.notes,
+      isActive: data.isActive,
+      updatedAt: new Date().toISOString()
+    };
 
-    saveClientsToStorage();
-    resetClientForm();
-    filterClients();
+    try {
+      if (editingClientId) {
+        await updateDoc(doc(db, "clients", editingClientId), payload);
+      } else {
+        await addDoc(clientsCollection, {
+          ...payload,
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      resetClientForm();
+      await loadClientsFromFirestore();
+      alert("Cliente guardado correctamente.");
+    } catch (error) {
+      console.error("Error guardando cliente en Firestore:", error);
+      alert("No se pudo guardar el cliente en Firestore.");
+    }
   });
 }
 
@@ -1341,13 +1400,16 @@ if (loginForm) {
     }
   });
 }
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   console.log("Estado de autenticación:", user);
 
   if (user) {
     showAppScreen();
+    await loadClientsFromFirestore();
   } else {
     showAuthScreen();
+    clients = [];
+    renderClientsTable();
   }
 });
 if (btnLogout) {
