@@ -1313,8 +1313,12 @@ function printInvoice(id) {
           <p><strong>Fecha de cobro:</strong> ${escapeHtml(formatShortDate(invoice.paymentDate || ""))}</p>
           <p><strong>Importe cobrado:</strong> ${formatCurrency(invoice.amountPaid || 0)}</p>
         </div>
-      </div>
-    </body>
+        <div class="box" style="margin-top:16px;">
+  <h3>Datos bancarios</h3>
+  <p><strong>IBAN:</strong> ES6500490456942910764001</p>
+  <p><strong>Titular:</strong> OBRANTIS S.L.</p>
+</div>
+</body>
     </html>
   `;
 
