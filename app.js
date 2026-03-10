@@ -1333,7 +1333,7 @@ function printInvoice(id) {
 
         <div class="box observations">
   <h3>Observaciones</h3>
-  <p>${escapeHtml(invoice.notes || "-")}</p>
+  <p>${escapeHtml(invoice.notes || "Sin observaciones")}</p>
 </div>
         <div class="box" style="margin-top:16px;">
   <h3>Datos bancarios</h3>
