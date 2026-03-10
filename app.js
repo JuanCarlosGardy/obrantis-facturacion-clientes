@@ -153,7 +153,31 @@ const viewConfig = {
     subtitle: "Ajustes generales de la aplicación"
   }
 };
+const OBRANTIS_COMPANY = {
+  name: "OBRANTIS S.L.",
+  subtitle: "Reformas y Construcción",
+  nif: "B26636761",
+  address1: "Avda. Castilla-La Mancha, 22",
+  address2: "45200 – Illescas – Toledo",
+  email: "contacto@obrantis.com"
+};
 
+const OBRANTIS_BANK = {
+  iban: "ES6500490456942910764001"
+};
+
+const OBRANTIS_LOGO_URL = "./logo-obrantis.png";
+
+let obrantisLogoDataUrl = null;
+
+function getInvoicePaymentMethodText(invoice) {
+  return String(
+    invoice?.paymentMethod ||
+    invoice?.paymentType ||
+    invoice?.paymentForm ||
+    "-"
+  ).trim() || "-";
+}
 menuButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const targetView = button.dataset.view;
@@ -552,7 +576,29 @@ function formatShortDate(value) {
 
   return date.toLocaleDateString("es-ES");
 }
+async function loadImageAsDataUrl(url) {
+  const response = await fetch(url);
+  const blob = await response.blob();
 
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function ensureObrantisLogoLoaded() {
+  if (obrantisLogoDataUrl) return obrantisLogoDataUrl;
+
+  try {
+    obrantisLogoDataUrl = await loadImageAsDataUrl(OBRANTIS_LOGO_URL);
+    return obrantisLogoDataUrl;
+  } catch (error) {
+    console.warn("No se pudo cargar el logo de OBRANTIS para el PDF:", error);
+    return null;
+  }
+}
 function renderProjectsTable(items = projects) {
   if (!projectsTableBody) return;
 
