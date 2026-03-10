@@ -1326,23 +1326,27 @@ function editInvoice(id) {
   document.getElementById("view-invoices")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function deleteInvoice(id) {
+async function deleteInvoice(id) {
   const invoice = invoices.find((item) => item.id === id);
   if (!invoice) return;
 
   const ok = window.confirm(`¿Eliminar la factura "${invoice.invoiceNumber}"?`);
   if (!ok) return;
 
-   invoices = invoices.filter((item) => item.id !== id);
+  try {
+    await deleteInvoiceFromFirestore(id);
 
-  if (editingInvoiceId === id) {
-    resetInvoiceForm();
+    if (editingInvoiceId === id) {
+      resetInvoiceForm();
+    }
+
+    await loadInvoicesFromFirestore();
+    filterInvoices();
+  } catch (error) {
+    console.error("Error eliminando factura:", error);
+    alert("No se pudo eliminar la factura en Firestore.");
   }
-
-  saveInvoicesToStorage();
-  filterInvoices();
 }
-
 window.editInvoice = editInvoice;
 window.deleteInvoice = deleteInvoice;
 
