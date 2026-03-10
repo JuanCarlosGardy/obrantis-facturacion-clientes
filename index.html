@@ -55,29 +55,38 @@
         </div>
       </header>
 
-      <section id="view-dashboard" class="view active">
-        <div class="cards-grid">
-          <article class="card stat-card">
-            <h3>Facturado este mes</h3>
-            <p class="stat-value">0,00 €</p>
-          </article>
+    <section id="view-dashboard" class="view active">
+  <div class="cards-grid">
+    <article class="card stat-card">
+      <h3>Facturado este mes</h3>
+      <p class="stat-value" id="dashBilledMonth">0,00 €</p>
+    </article>
 
-          <article class="card stat-card">
-            <h3>Cobrado este mes</h3>
-            <p class="stat-value">0,00 €</p>
-          </article>
+    <article class="card stat-card">
+      <h3>Cobrado este mes</h3>
+      <p class="stat-value" id="dashCollectedMonth">0,00 €</p>
+    </article>
 
-          <article class="card stat-card">
-            <h3>Pendiente de cobro</h3>
-            <p class="stat-value">0,00 €</p>
-          </article>
+    <article class="card stat-card">
+      <h3>Pendiente de cobro</h3>
+      <p class="stat-value" id="dashPendingTotal">0,00 €</p>
+    </article>
 
-          <article class="card stat-card">
-            <h3>Facturas vencidas</h3>
-            <p class="stat-value">0</p>
-          </article>
-        </div>
+    <article class="card stat-card">
+      <h3>Facturas vencidas</h3>
+      <p class="stat-value" id="dashOverdueCount">0</p>
+    </article>
+  </div>
 
+  <div class="card quick-actions-card">
+    <h3>Accesos rápidos</h3>
+    <div class="quick-actions-grid">
+      <button type="button" class="quick-action-btn" id="btnQuickNewClient">Nuevo cliente</button>
+      <button type="button" class="quick-action-btn" id="btnQuickNewProject">Nueva obra</button>
+      <button type="button" class="quick-action-btn" id="btnQuickNewInvoice">Nueva factura</button>
+      <button type="button" class="quick-action-btn" id="btnQuickReports">Ver informes</button>
+    </div>
+  </div>
         <div class="card">
           <h3>Accesos rápidos</h3>
           <div class="quick-actions">
