@@ -232,7 +232,15 @@ const reportMonthWrap = document.getElementById("reportMonthWrap");
 const reportMonthSelect = document.getElementById("reportMonth");
 const reportQuarterWrap = document.getElementById("reportQuarterWrap");
 const reportQuarterSelect = document.getElementById("reportQuarter");
+const dashBilledMonth = document.getElementById("dashBilledMonth");
+const dashCollectedMonth = document.getElementById("dashCollectedMonth");
+const dashPendingTotal = document.getElementById("dashPendingTotal");
+const dashOverdueCount = document.getElementById("dashOverdueCount");
 
+const btnQuickNewClient = document.getElementById("btnQuickNewClient");
+const btnQuickNewProject = document.getElementById("btnQuickNewProject");
+const btnQuickNewInvoice = document.getElementById("btnQuickNewInvoice");
+const btnQuickReports = document.getElementById("btnQuickReports");
 const btnGenerateReport = document.getElementById("btnGenerateReport");
 const btnExportReportCsv = document.getElementById("btnExportReportCsv");
 const btnExportReportExcel = document.getElementById("btnExportReportExcel");
