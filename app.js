@@ -1310,7 +1310,6 @@ function printInvoice(id) {
         <div class="notes">
           <h3>Observaciones</h3>
           <p>${escapeHtml(invoice.notes || "-")}</p>
-          <p><strong>Forma de pago:</strong> ${escapeHtml(invoice.paymentMethod || "-")}</p>
           <p><strong>Fecha de cobro:</strong> ${escapeHtml(formatShortDate(invoice.paymentDate || ""))}</p>
           <p><strong>Importe cobrado:</strong> ${formatCurrency(invoice.amountPaid || 0)}</p>
         </div>
