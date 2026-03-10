@@ -86,10 +86,11 @@ async function fetchInvoicesFromFirestore() {
 
 async function saveInvoiceToFirestore(invoiceData) {
   try {
-    const invoiceId = invoiceData.id;
+    const invoiceId = invoiceData.id || ("INV-" + Date.now() + "-" + Math.floor(Math.random() * 1000));
 
     await setDoc(doc(db, "invoices", invoiceId), {
       ...invoiceData,
+      id: invoiceId,
       updatedAt: serverTimestamp()
     }, { merge: true });
 
@@ -1374,52 +1375,55 @@ if (invoiceSearchInput) {
 }
 
 if (invoiceForm) {
-  invoiceForm.addEventListener("submit", (ev) => {
-    ev.preventDefault();
+ invoiceForm.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
 
-    const data = getInvoiceFormData();
+  const data = getInvoiceFormData();
 
-    if (!data.invoiceNumber) {
-      alert("Debes indicar el número de factura.");
-      return;
-    }
-    if (!isValidInvoiceNumberFormat(data.invoiceNumber)) {
-      alert("El número de factura debe tener este formato: 2026-001");
-      return;
-    }
-    if (!data.invoiceDate) {
-      alert("Debes indicar la fecha de factura.");
-      return;
-    }
+  if (!data.invoiceNumber) {
+    alert("Debes indicar el número de factura.");
+    return;
+  }
+  if (!isValidInvoiceNumberFormat(data.invoiceNumber)) {
+    alert("El número de factura debe tener este formato: 2026-001");
+    return;
+  }
+  if (!data.invoiceDate) {
+    alert("Debes indicar la fecha de factura.");
+    return;
+  }
 
-    if (!data.clientId) {
-      alert("Debes seleccionar un cliente.");
-      return;
-    }
+  if (!data.clientId) {
+    alert("Debes seleccionar un cliente.");
+    return;
+  }
 
-    if (!data.lines.length || data.lines.every((line) => !line.description && !line.quantity && !line.unitPrice)) {
-      alert("Debes añadir al menos una línea de factura.");
-      return;
-    }
+  if (!data.lines.length || data.lines.every((line) => !line.description && !line.quantity && !line.unitPrice)) {
+    alert("Debes añadir al menos una línea de factura.");
+    return;
+  }
 
-        const duplicated = invoices.find((item) => {
-      return String(item.invoiceNumber || "").trim() === String(data.invoiceNumber || "").trim() && item.id !== data.id;
-    });
-    if (duplicated) {
-      alert("Ese número de factura ya existe.");
-      return;
-    }
+  const duplicated = invoices.find((item) => {
+    return String(item.invoiceNumber || "").trim() === String(data.invoiceNumber || "").trim() && item.id !== data.id;
+  });
+  if (duplicated) {
+    alert("Ese número de factura ya existe.");
+    return;
+  }
 
-       if (editingInvoiceId) {
-      invoices = invoices.map((item) => item.id === editingInvoiceId ? data : item);
-    } else {
-      invoices.unshift(data);
-    }
+  try {
+    await saveInvoiceToFirestore(data);
+    await loadInvoicesFromFirestore();
 
-    saveInvoicesToStorage();
     resetInvoiceForm();
     filterInvoices();
-  });
+
+    alert("Factura guardada correctamente.");
+  } catch (error) {
+    console.error("Error guardando factura:", error);
+    alert("No se pudo guardar la factura en Firestore.");
+  }
+});
 }
 
 const originalResetProjectForm = resetProjectForm;
