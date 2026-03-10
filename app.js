@@ -1123,6 +1123,163 @@ function printInvoice(id) {
       <title>Factura ${escapeHtml(invoice.invoiceNumber || "")}</title>
       <style>
         * { box-sizing: border-box; }
+        @page {
+  size: A4;
+  margin: 12mm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  color: #111;
+  background: #fff;
+}
+
+body {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.invoice-print {
+  width: 100%;
+}
+
+.invoice-header,
+.invoice-client,
+.invoice-meta,
+.invoice-concept,
+.invoice-notes,
+.invoice-bank,
+.invoice-totals-wrapper,
+.invoice-summary-block {
+  width: 100%;
+}
+
+.invoice-lines-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin-top: 14px;
+}
+
+.invoice-lines-table th,
+.invoice-lines-table td {
+  border: 1px solid #cfcfcf;
+  padding: 8px 6px;
+  vertical-align: top;
+  font-size: 12px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.invoice-lines-table th {
+  background: #f3f3f3;
+  font-weight: 700;
+}
+
+.invoice-lines-table thead {
+  display: table-header-group;
+}
+
+.invoice-lines-table tfoot {
+  display: table-footer-group;
+}
+
+.invoice-lines-table tr {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.invoice-lines-table td,
+.invoice-lines-table th {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.invoice-summary-block {
+  margin-top: 14px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.invoice-totals-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.invoice-totals-box {
+  width: 320px;
+  max-width: 100%;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.invoice-totals-box table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.invoice-totals-box td {
+  border: 1px solid #cfcfcf;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.invoice-total-final td {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.invoice-notes,
+.invoice-bank {
+  margin-top: 12px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.section-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+@media print {
+  .invoice-lines-table {
+    page-break-after: auto;
+  }
+
+  .invoice-lines-table tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .invoice-totals-wrapper,
+  .invoice-totals-box,
+  .invoice-summary-block,
+  .invoice-notes,
+  .invoice-bank {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .no-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .force-break-before {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+}
         body {
           font-family: Arial, Helvetica, sans-serif;
           margin: 0;
@@ -1317,7 +1474,7 @@ function printInvoice(id) {
           <p>${escapeHtml(invoice.concept || "-")}</p>
         </div>
 
-        <table>
+        <table class="invoice-lines-table">
           <thead>
             <tr>
               <th>Descripción</th>
