@@ -1149,6 +1149,13 @@ function printInvoice(id) {
           margin: 4px 0;
           line-height: 1.4;
         }
+        .observations {
+  margin-top: 12px;
+}
+
+.observations p {
+  margin: 4px 0;
+}
         .meta {
           text-align: right;
         }
@@ -1307,12 +1314,10 @@ function printInvoice(id) {
           </tr>
         </table>
 
-        <div class="notes">
-          <h3>Observaciones</h3>
-          <p>${escapeHtml(invoice.notes || "-")}</p>
-          <p><strong>Fecha de cobro:</strong> ${escapeHtml(formatShortDate(invoice.paymentDate || ""))}</p>
-          <p><strong>Importe cobrado:</strong> ${formatCurrency(invoice.amountPaid || 0)}</p>
-        </div>
+        <div class="box observations">
+  <h3>Observaciones</h3>
+  <p>${escapeHtml(invoice.notes || "-")}</p>
+</div>
         <div class="box" style="margin-top:16px;">
   <h3>Datos bancarios</h3>
   <p><strong>IBAN:</strong> ES6500490456942910764001</p>
