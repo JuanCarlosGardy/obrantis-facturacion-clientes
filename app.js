@@ -618,21 +618,26 @@ function editProject(id) {
   document.getElementById("view-projects")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function deleteProject(id) {
+async function deleteProject(id) {
   const project = projects.find((item) => item.id === id);
   if (!project) return;
 
   const ok = window.confirm(`¿Eliminar la obra "${project.name}"?`);
   if (!ok) return;
 
-    projects = projects.filter((item) => item.id !== id);
+  try {
+    await deleteProjectFromFirestore(id);
 
-  if (editingProjectId === id) {
-    resetProjectForm();
+    if (editingProjectId === id) {
+      resetProjectForm();
+    }
+
+    await loadProjectsFromFirestore();
+    filterProjects();
+  } catch (error) {
+    console.error("Error eliminando obra:", error);
+    alert("No se pudo eliminar la obra en Firestore.");
   }
-
-  saveProjectsToStorage();
-  filterProjects();
 }
 
 window.editProject = editProject;
