@@ -812,6 +812,122 @@ function isExcelLibraryAvailable() {
     "text/csv;charset=utf-8;"
   );
 }
+function isExcelLibraryAvailable() {
+  return typeof XLSX !== "undefined";
+}
+
+function buildReportSummarySheetData(report) {
+  return [
+    ["INFORME DE FACTURACIÓN"],
+    [],
+    ["Periodo", report.range?.label || ""],
+    ["Facturas emitidas", report.summaryData?.invoiceCount ?? 0],
+    ["Base imponible total", Number(report.summaryData?.baseTotal ?? 0)],
+    ["IVA total", Number(report.summaryData?.vatTotal ?? 0)],
+    ["Total facturado", Number(report.summaryData?.grandTotal ?? 0)],
+    ["Facturas cobradas", report.summaryData?.paidCount ?? 0],
+    ["Facturas pendientes", report.summaryData?.pendingCount ?? 0]
+  ];
+}
+
+function buildReportInvoicesSheetData(report) {
+  const rows = [
+    ["Número", "Fecha", "Cliente", "Obra", "Estado", "Base", "IVA", "Total"]
+  ];
+
+  for (const invoice of report.invoices || []) {
+    rows.push([
+      invoice.invoiceNumber || "",
+      formatReportDate(invoice.invoiceDate || ""),
+      invoice.clientName || "",
+      invoice.projectName || "",
+      getInvoicePaymentStatus(invoice),
+      Number(invoice.baseTotal || 0),
+      Number(invoice.vatTotal || 0),
+      Number(invoice.totalAmount || 0)
+    ]);
+  }
+
+  return rows;
+}
+
+function buildReportClientsSheetData(report) {
+  const rows = [
+    ["Cliente", "Base", "IVA", "Total"]
+  ];
+
+  for (const row of report.clientRows || []) {
+    rows.push([
+      row.name || "",
+      Number(row.baseTotal || 0),
+      Number(row.vatTotal || 0),
+      Number(row.totalAmount || 0)
+    ]);
+  }
+
+  return rows;
+}
+
+function buildReportProjectsSheetData(report) {
+  const rows = [
+    ["Obra", "Base", "IVA", "Total"]
+  ];
+
+  for (const row of report.projectRows || []) {
+    rows.push([
+      row.name || "",
+      Number(row.baseTotal || 0),
+      Number(row.vatTotal || 0),
+      Number(row.totalAmount || 0)
+    ]);
+  }
+
+  return rows;
+}
+
+function setWorksheetColumnWidths(worksheet, widths) {
+  worksheet["!cols"] = widths.map((wch) => ({ wch }));
+}
+
+function exportReportExcel() {
+  if (!lastGeneratedReport) {
+    alert("Primero debes generar un informe.");
+    return;
+  }
+
+  if (!isExcelLibraryAvailable()) {
+    alert("La librería de Excel no está cargada. Revisa index.html.");
+    return;
+  }
+
+  const workbook = XLSX.utils.book_new();
+
+  const summarySheet = XLSX.utils.aoa_to_sheet(
+    buildReportSummarySheetData(lastGeneratedReport)
+  );
+  const invoicesSheet = XLSX.utils.aoa_to_sheet(
+    buildReportInvoicesSheetData(lastGeneratedReport)
+  );
+  const clientsSheet = XLSX.utils.aoa_to_sheet(
+    buildReportClientsSheetData(lastGeneratedReport)
+  );
+  const projectsSheet = XLSX.utils.aoa_to_sheet(
+    buildReportProjectsSheetData(lastGeneratedReport)
+  );
+
+  setWorksheetColumnWidths(summarySheet, [28, 30]);
+  setWorksheetColumnWidths(invoicesSheet, [16, 14, 28, 28, 14, 14, 14, 14]);
+  setWorksheetColumnWidths(clientsSheet, [30, 14, 14, 14]);
+  setWorksheetColumnWidths(projectsSheet, [30, 14, 14, 14]);
+
+  XLSX.utils.book_append_sheet(workbook, summarySheet, "Resumen");
+  XLSX.utils.book_append_sheet(workbook, invoicesSheet, "Facturas");
+  XLSX.utils.book_append_sheet(workbook, clientsSheet, "Clientes");
+  XLSX.utils.book_append_sheet(workbook, projectsSheet, "Obras");
+
+  const fileBaseName = getReportFileBaseName(lastGeneratedReport);
+  XLSX.writeFile(workbook, `${fileBaseName}.xlsx`);
+}
 function showAppScreen() {
   if (authScreen) authScreen.classList.add("hidden");
   if (appShell) appShell.classList.remove("hidden");
