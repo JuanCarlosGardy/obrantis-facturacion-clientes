@@ -1551,67 +1551,6 @@ function exportReportExcel() {
   const fileBaseName = getReportFileBaseName(lastGeneratedReport);
   XLSX.writeFile(workbook, `${fileBaseName}.xlsx`);
 }
-function buildReportInvoicesHtmlTable(report) {
-  const rows = report?.invoices || [];
-
-  if (!rows.length) {
-    return `
-      <table class="report-print-table">
-        <thead>
-          <tr>
-            <th>Factura</th>
-            <th>Fecha</th>
-            <th>Cliente</th>
-            <th>Obra</th>
-            <th>Estado</th>
-            <th class="num">Base</th>
-            <th class="num">IVA</th>
-            <th class="num">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="8">No hay facturas en el periodo seleccionado.</td>
-          </tr>
-        </tbody>
-      </table>
-    `;
-  }
-
-  const bodyHtml = rows.map((invoice) => `
-    <tr>
-      <td>${getSafeReportHtml(invoice.invoiceNumber || "")}</td>
-      <td>${getSafeReportHtml(formatReportDate(invoice.invoiceDate || ""))}</td>
-      <td>${getSafeReportHtml(invoice.clientName || "")}</td>
-      <td>${getSafeReportHtml(invoice.projectName || "")}</td>
-      <td>${getSafeReportHtml(getInvoicePaymentStatus(invoice))}</td>
-      <td class="num">${getSafeReportHtml(formatReportCurrency(invoice.baseTotal || 0))}</td>
-      <td class="num">${getSafeReportHtml(formatReportCurrency(invoice.vatTotal || 0))}</td>
-      <td class="num">${getSafeReportHtml(formatReportCurrency(invoice.totalAmount || 0))}</td>
-    </tr>
-  `).join("");
-
-  return `
-    <table class="report-print-table">
-      <thead>
-        <tr>
-          <th>Factura</th>
-          <th>Fecha</th>
-          <th>Cliente</th>
-          <th>Obra</th>
-          <th>Estado</th>
-          <th class="num">Base</th>
-          <th class="num">IVA</th>
-          <th class="num">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${bodyHtml}
-      </tbody>
-    </table>
-  `;
-}
-
 function buildGroupedReportHtmlTable(title, rows, emptyText) {
   const safeTitle = getSafeReportHtml(title);
 
