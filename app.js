@@ -554,7 +554,17 @@ function renderProjectsTable(items = projects) {
     </tr>
   `).join("");
 }
-
+async function loadProjectsFromFirestore() {
+  try {
+    projects = await fetchProjectsFromFirestore();
+    renderProjectsTable();
+    fillProjectClientOptions(projectClientIdInput ? projectClientIdInput.value : "");
+  } catch (error) {
+    console.error("Error cargando listado de obras:", error);
+    projects = [];
+    renderProjectsTable();
+  }
+}
 function filterProjects() {
   const search = (projectSearchInput.value || "").trim().toLowerCase();
 
@@ -1440,10 +1450,13 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     showAppScreen();
     await loadClientsFromFirestore();
+    await loadProjectsFromFirestore();
   } else {
     showAuthScreen();
     clients = [];
+    projects = [];
     renderClientsTable();
+    renderProjectsTable();
   }
 });
 if (btnLogout) {
