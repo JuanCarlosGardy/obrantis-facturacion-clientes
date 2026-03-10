@@ -200,7 +200,7 @@ menuButtons.forEach((button) => {
 });
 let clients = [];
 let editingClientId = null;
-
+let lastGeneratedReport = null;
 const clientForm = document.getElementById("clientForm");
 const clientIdInput = document.getElementById("clientId");
 const clientNameInput = document.getElementById("clientName");
@@ -226,12 +226,337 @@ const loginEmailInput = document.getElementById("loginEmail");
 const loginPasswordInput = document.getElementById("loginPassword");
 const authMessage = document.getElementById("authMessage");
 const btnLogout = document.getElementById("btnLogout");
+const reportTypeSelect = document.getElementById("reportType");
+const reportYearInput = document.getElementById("reportYear");
+const reportMonthWrap = document.getElementById("reportMonthWrap");
+const reportMonthSelect = document.getElementById("reportMonth");
+const reportQuarterWrap = document.getElementById("reportQuarterWrap");
+const reportQuarterSelect = document.getElementById("reportQuarter");
+
+const btnGenerateReport = document.getElementById("btnGenerateReport");
+const btnExportReportCsv = document.getElementById("btnExportReportCsv");
+const btnExportReportExcel = document.getElementById("btnExportReportExcel");
+const btnExportReportPdf = document.getElementById("btnExportReportPdf");
+
+const reportSummary = document.getElementById("reportSummary");
+const reportInvoicesBody = document.getElementById("reportInvoicesBody");
+const reportClientsBody = document.getElementById("reportClientsBody");
+const reportProjectsBody = document.getElementById("reportProjectsBody");
 function showAuthScreen(message = "") {
   if (authScreen) authScreen.classList.remove("hidden");
   if (appShell) appShell.classList.add("hidden");
   if (authMessage) authMessage.textContent = message;
 }
+function updateReportFilterVisibility() {
+  if (!reportTypeSelect) return;
 
+  const type = reportTypeSelect.value;
+
+  if (reportMonthWrap) {
+    reportMonthWrap.style.display = type === "monthly" ? "block" : "none";
+  }
+
+  if (reportQuarterWrap) {
+    reportQuarterWrap.style.display = type === "quarterly" ? "block" : "none";
+  }
+}
+
+function initReportsModule() {
+  if (reportYearInput) {
+    reportYearInput.value = new Date().getFullYear();
+  }
+
+  if (reportMonthSelect) {
+    reportMonthSelect.value = String(new Date().getMonth());
+  }
+
+  updateReportFilterVisibility();
+}
+
+if (reportTypeSelect) {
+  reportTypeSelect.addEventListener("change", updateReportFilterVisibility);
+}
+function formatReportCurrency(value) {
+  return new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: "EUR"
+  }).format(Number(value || 0));
+}
+
+function formatReportDate(dateValue) {
+  if (!dateValue) return "";
+  const d = new Date(dateValue);
+  if (Number.isNaN(d.getTime())) return dateValue;
+  return d.toLocaleDateString("es-ES");
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function getInvoiceDateAsDate(invoice) {
+  if (!invoice || !invoice.invoiceDate) return null;
+
+  const d = new Date(invoice.invoiceDate);
+  if (Number.isNaN(d.getTime())) return null;
+
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function getReportDateRange() {
+  const type = reportTypeSelect?.value || "monthly";
+  const year = Number(reportYearInput?.value || new Date().getFullYear());
+
+  let startDate;
+  let endDate;
+  let label = "";
+
+  if (type === "monthly") {
+    const month = Number(reportMonthSelect?.value || 0);
+    startDate = new Date(year, month, 1);
+    endDate = new Date(year, month + 1, 0);
+    label = `Informe mensual - ${startDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" })}`;
+  } else if (type === "quarterly") {
+    const quarter = Number(reportQuarterSelect?.value || 1);
+    const startMonth = (quarter - 1) * 3;
+    startDate = new Date(year, startMonth, 1);
+    endDate = new Date(year, startMonth + 3, 0);
+    label = `Informe trimestral - ${quarter}º trimestre ${year}`;
+  } else {
+    startDate = new Date(year, 0, 1);
+    endDate = new Date(year, 11, 31);
+    label = `Informe anual - ${year}`;
+  }
+
+  startDate.setHours(0, 0, 0, 0);
+  endDate.setHours(23, 59, 59, 999);
+
+  return { type, year, startDate, endDate, label };
+}
+
+function getInvoicePaymentStatus(invoice) {
+  const rawStatus =
+    invoice?.paymentStatus ||
+    invoice?.collectionStatus ||
+    invoice?.status ||
+    "";
+
+  const normalized = String(rawStatus).trim().toLowerCase();
+
+  if (
+    normalized.includes("cobrad") ||
+    normalized === "paid" ||
+    normalized === "pagada"
+  ) {
+    return "Cobrada";
+  }
+
+  return "Pendiente";
+}
+function getInvoicesForSelectedReport() {
+  const { startDate, endDate } = getReportDateRange();
+
+  const sourceInvoices = Array.isArray(invoices) ? invoices : [];
+
+  return sourceInvoices
+    .filter((invoice) => {
+      const invoiceDate = getInvoiceDateAsDate(invoice);
+      if (!invoiceDate) return false;
+      return invoiceDate >= startDate && invoiceDate <= endDate;
+    })
+    .sort((a, b) => {
+      const da = getInvoiceDateAsDate(a)?.getTime() || 0;
+      const db = getInvoiceDateAsDate(b)?.getTime() || 0;
+      return da - db;
+    });
+}
+function buildReportSummaryData(filteredInvoices) {
+  const summary = {
+    invoiceCount: 0,
+    baseTotal: 0,
+    vatTotal: 0,
+    grandTotal: 0,
+    paidCount: 0,
+    pendingCount: 0
+  };
+
+  for (const invoice of filteredInvoices) {
+    summary.invoiceCount += 1;
+    summary.baseTotal += Number(invoice.baseTotal || 0);
+    summary.vatTotal += Number(invoice.vatTotal || 0);
+    summary.grandTotal += Number(invoice.totalAmount || 0);
+
+    if (getInvoicePaymentStatus(invoice) === "Cobrada") {
+      summary.paidCount += 1;
+    } else {
+      summary.pendingCount += 1;
+    }
+  }
+
+  return summary;
+}
+
+function renderReportSummary(summaryData, label) {
+  if (!reportSummary) return;
+
+  reportSummary.innerHTML = `
+    <h4 style="margin-top:0;">${escapeHtml(label)}</h4>
+    <div class="report-summary-grid">
+      <div class="report-card">
+        <div class="report-card-title">Facturas emitidas</div>
+        <div class="report-card-value">${summaryData.invoiceCount}</div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-title">Base imponible total</div>
+        <div class="report-card-value">${formatReportCurrency(summaryData.baseTotal)}</div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-title">IVA total</div>
+        <div class="report-card-value">${formatReportCurrency(summaryData.vatTotal)}</div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-title">Total facturado</div>
+        <div class="report-card-value">${formatReportCurrency(summaryData.grandTotal)}</div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-title">Cobradas</div>
+        <div class="report-card-value">${summaryData.paidCount}</div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-title">Pendientes</div>
+        <div class="report-card-value">${summaryData.pendingCount}</div>
+      </div>
+    </div>
+  `;
+}
+function renderReportInvoicesTable(filteredInvoices) {
+  if (!reportInvoicesBody) return;
+
+  if (!filteredInvoices.length) {
+    reportInvoicesBody.innerHTML = `
+      <tr>
+        <td colspan="8">No hay facturas en el periodo seleccionado.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  reportInvoicesBody.innerHTML = filteredInvoices
+    .map((invoice) => {
+      const paymentStatus = getInvoicePaymentStatus(invoice);
+
+      return `
+        <tr>
+          <td>${escapeHtml(invoice.invoiceNumber || "")}</td>
+          <td>${escapeHtml(formatReportDate(invoice.invoiceDate || ""))}</td>
+          <td>${escapeHtml(invoice.clientName || "")}</td>
+          <td>${escapeHtml(invoice.projectName || "")}</td>
+          <td>${escapeHtml(paymentStatus)}</td>
+          <td style="text-align:right;">${escapeHtml(formatReportCurrency(invoice.baseTotal || 0))}</td>
+          <td style="text-align:right;">${escapeHtml(formatReportCurrency(invoice.vatTotal || 0))}</td>
+          <td style="text-align:right;">${escapeHtml(formatReportCurrency(invoice.totalAmount || 0))}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+function buildGroupedReportData(filteredInvoices, groupField, emptyLabel) {
+  const map = new Map();
+
+  for (const invoice of filteredInvoices) {
+    const key = String(invoice[groupField] || emptyLabel).trim() || emptyLabel;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        name: key,
+        baseTotal: 0,
+        vatTotal: 0,
+        totalAmount: 0
+      });
+    }
+
+    const item = map.get(key);
+    item.baseTotal += Number(invoice.baseTotal || 0);
+    item.vatTotal += Number(invoice.vatTotal || 0);
+    item.totalAmount += Number(invoice.totalAmount || 0);
+  }
+
+  return Array.from(map.values()).sort((a, b) => b.totalAmount - a.totalAmount);
+}
+
+function renderReportClientsTable(rows) {
+  if (!reportClientsBody) return;
+
+  if (!rows.length) {
+    reportClientsBody.innerHTML = `
+      <tr>
+        <td colspan="4">Sin datos para clientes en este periodo.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  reportClientsBody.innerHTML = rows
+    .map((row) => `
+      <tr>
+        <td>${escapeHtml(row.name)}</td>
+        <td style="text-align:right;">${escapeHtml(formatReportCurrency(row.baseTotal))}</td>
+        <td style="text-align:right;">${escapeHtml(formatReportCurrency(row.vatTotal))}</td>
+        <td style="text-align:right;">${escapeHtml(formatReportCurrency(row.totalAmount))}</td>
+      </tr>
+    `)
+    .join("");
+}
+function renderReportProjectsTable(rows) {
+  if (!reportProjectsBody) return;
+
+  if (!rows.length) {
+    reportProjectsBody.innerHTML = `
+      <tr>
+        <td colspan="4">Sin datos para obras en este periodo.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  reportProjectsBody.innerHTML = rows
+    .map((row) => `
+      <tr>
+        <td>${escapeHtml(row.name)}</td>
+        <td style="text-align:right;">${escapeHtml(formatReportCurrency(row.baseTotal))}</td>
+        <td style="text-align:right;">${escapeHtml(formatReportCurrency(row.vatTotal))}</td>
+        <td style="text-align:right;">${escapeHtml(formatReportCurrency(row.totalAmount))}</td>
+      </tr>
+    `)
+    .join("");
+}
+function generateReport() {
+  const range = getReportDateRange();
+  const filteredInvoices = getInvoicesForSelectedReport();
+
+  const summaryData = buildReportSummaryData(filteredInvoices);
+  const clientRows = buildGroupedReportData(filteredInvoices, "clientName", "Sin cliente");
+  const projectRows = buildGroupedReportData(filteredInvoices, "projectName", "Sin obra");
+
+  renderReportSummary(summaryData, range.label);
+  renderReportInvoicesTable(filteredInvoices);
+  renderReportClientsTable(clientRows);
+  renderReportProjectsTable(projectRows);
+
+  lastGeneratedReport = {
+    range,
+    invoices: filteredInvoices,
+    summaryData,
+    clientRows,
+    projectRows
+  };
+}
 function showAppScreen() {
   if (authScreen) authScreen.classList.add("hidden");
   if (appShell) appShell.classList.remove("hidden");
@@ -248,7 +573,9 @@ function resetClientForm() {
   clientIsActiveInput.value = "true";
   btnSaveClient.textContent = "Guardar cliente";
 }
-
+if (btnGenerateReport) {
+  btnGenerateReport.addEventListener("click", generateReport);
+}
 function getClientFormData() {
   return {
     id: editingClientId || generateClientId(),
@@ -1774,3 +2101,4 @@ if (btnLogout) {
     }
   });
 }
+initReportsModule();
