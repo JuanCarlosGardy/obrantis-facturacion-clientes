@@ -114,10 +114,12 @@ async function loadInvoicesFromFirestore() {
   try {
     invoices = await fetchInvoicesFromFirestore();
     renderInvoicesTable();
+    refreshNextInvoiceNumber();
   } catch (error) {
     console.error("Error cargando listado de facturas:", error);
     invoices = [];
     renderInvoicesTable();
+    refreshNextInvoiceNumber();
   }
 }
 const menuButtons = document.querySelectorAll(".menu-btn");
@@ -826,6 +828,12 @@ function getNextInvoiceNumber() {
   const nextSerial = maxSerial + 1;
   return `${year}-${String(nextSerial).padStart(3, "0")}`;
 }
+function refreshNextInvoiceNumber() {
+  if (!invoiceNumberInput) return;
+  if (editingInvoiceId) return;
+
+  invoiceNumberInput.value = getNextInvoiceNumber();
+}
 function isValidInvoiceNumberFormat(value) {
   return /^\d{4}-\d{3}$/.test(String(value || "").trim());
 }
@@ -971,7 +979,7 @@ function resetInvoiceForm() {
   invoiceDateInput.value = new Date().toISOString().split("T")[0];
   fillInvoiceClientOptions();
   fillInvoiceProjectOptions();
-  invoiceNumberInput.value = getNextInvoiceNumber();
+  refreshNextInvoiceNumber();
   btnSaveInvoice.textContent = "Guardar factura";
   addInvoiceLine();
   updateInvoiceTotals();
