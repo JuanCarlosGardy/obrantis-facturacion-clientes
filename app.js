@@ -178,24 +178,28 @@ function getInvoicePaymentMethodText(invoice) {
     "-"
   ).trim() || "-";
 }
+function activateView(targetView) {
+  menuButtons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.view === targetView);
+  });
+
+  views.forEach((view) => view.classList.remove("active"));
+
+  const selectedView = document.getElementById(`view-${targetView}`);
+  if (selectedView) {
+    selectedView.classList.add("active");
+  }
+
+  if (viewConfig[targetView]) {
+    viewTitle.textContent = viewConfig[targetView].title;
+    viewSubtitle.textContent = viewConfig[targetView].subtitle;
+  }
+}
+
 menuButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const targetView = button.dataset.view;
-
-    menuButtons.forEach((btn) => btn.classList.remove("active"));
-    button.classList.add("active");
-
-    views.forEach((view) => view.classList.remove("active"));
-
-    const selectedView = document.getElementById(`view-${targetView}`);
-    if (selectedView) {
-      selectedView.classList.add("active");
-    }
-
-    if (viewConfig[targetView]) {
-      viewTitle.textContent = viewConfig[targetView].title;
-      viewSubtitle.textContent = viewConfig[targetView].subtitle;
-    }
+    activateView(targetView);
   });
 });
 let clients = [];
@@ -1897,7 +1901,118 @@ function getProjectFormData() {
     notes: projectNotesInput.value.trim()
   };
 }
+function formatDashboardCurrency(value) {
+  return new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: "EUR"
+  }).format(Number(value || 0));
+}
 
+function getInvoiceDateValue(invoice) {
+  if (!invoice?.invoiceDate) return null;
+
+  const d = new Date(invoice.invoiceDate);
+  if (Number.isNaN(d.getTime())) return null;
+
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function getInvoiceDueDateValue(invoice) {
+  if (!invoice?.dueDate) return null;
+
+  const d = new Date(invoice.dueDate);
+  if (Number.isNaN(d.getTime())) return null;
+
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function isInvoicePaid(invoice) {
+  const rawStatus =
+    invoice?.paymentStatus ||
+    invoice?.collectionStatus ||
+    invoice?.status ||
+    "";
+
+  const normalized = String(rawStatus).trim().toLowerCase();
+
+  return (
+    normalized.includes("cobrad") ||
+    normalized === "paid" ||
+    normalized === "pagada"
+  );
+}
+function calculateDashboardStats() {
+  const sourceInvoices = Array.isArray(invoices) ? invoices : [];
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  const monthStart = new Date(currentYear, currentMonth, 1);
+  monthStart.setHours(0, 0, 0, 0);
+
+  const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+  monthEnd.setHours(23, 59, 59, 999);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let billedMonth = 0;
+  let collectedMonth = 0;
+  let pendingTotal = 0;
+  let overdueCount = 0;
+
+  for (const invoice of sourceInvoices) {
+    const invoiceDate = getInvoiceDateValue(invoice);
+    const dueDate = getInvoiceDueDateValue(invoice);
+    const totalAmount = Number(invoice.totalAmount || 0);
+    const paid = isInvoicePaid(invoice);
+
+    if (invoiceDate && invoiceDate >= monthStart && invoiceDate <= monthEnd) {
+      billedMonth += totalAmount;
+
+      if (paid) {
+        collectedMonth += totalAmount;
+      }
+    }
+
+    if (!paid) {
+      pendingTotal += totalAmount;
+
+      if (dueDate && dueDate < today) {
+        overdueCount += 1;
+      }
+    }
+  }
+
+  return {
+    billedMonth,
+    collectedMonth,
+    pendingTotal,
+    overdueCount
+  };
+}
+function renderDashboardStats() {
+  const stats = calculateDashboardStats();
+
+  if (dashBilledMonth) {
+    dashBilledMonth.textContent = formatDashboardCurrency(stats.billedMonth);
+  }
+
+  if (dashCollectedMonth) {
+    dashCollectedMonth.textContent = formatDashboardCurrency(stats.collectedMonth);
+  }
+
+  if (dashPendingTotal) {
+    dashPendingTotal.textContent = formatDashboardCurrency(stats.pendingTotal);
+  }
+
+  if (dashOverdueCount) {
+    dashOverdueCount.textContent = String(stats.overdueCount);
+  }
+}
 function getProjectStatusClass(status) {
   if (status === "Pendiente") return "status-badge status-pending";
   if (status === "En curso") return "status-badge status-progress";
@@ -3113,3 +3228,4 @@ if (btnLogout) {
   });
 }
 initReportsModule();
+renderDashboardStats();
