@@ -318,21 +318,7 @@ menuButtons.forEach((button) => {
     activateView(targetView);
   });
 });
-if (btnQuickNewClient) {
-  btnQuickNewClient.addEventListener("click", () => activateView("clients"));
-}
 
-if (btnQuickNewProject) {
-  btnQuickNewProject.addEventListener("click", () => activateView("projects"));
-}
-
-if (btnQuickNewInvoice) {
-  btnQuickNewInvoice.addEventListener("click", () => activateView("invoices"));
-}
-
-if (btnQuickReports) {
-  btnQuickReports.addEventListener("click", () => activateView("reports"));
-}
 let clients = [];
 let editingClientId = null;
 let lastGeneratedReport = null;
@@ -376,6 +362,21 @@ const btnQuickNewClient = document.getElementById("btnQuickNewClient");
 const btnQuickNewProject = document.getElementById("btnQuickNewProject");
 const btnQuickNewInvoice = document.getElementById("btnQuickNewInvoice");
 const btnQuickReports = document.getElementById("btnQuickReports");
+if (btnQuickNewClient) {
+  btnQuickNewClient.addEventListener("click", () => activateView("clients"));
+}
+
+if (btnQuickNewProject) {
+  btnQuickNewProject.addEventListener("click", () => activateView("projects"));
+}
+
+if (btnQuickNewInvoice) {
+  btnQuickNewInvoice.addEventListener("click", () => activateView("invoices"));
+}
+
+if (btnQuickReports) {
+  btnQuickReports.addEventListener("click", () => activateView("reports"));
+}
 const btnGenerateReport = document.getElementById("btnGenerateReport");
 const btnExportReportCsv = document.getElementById("btnExportReportCsv");
 const btnExportReportExcel = document.getElementById("btnExportReportExcel");
