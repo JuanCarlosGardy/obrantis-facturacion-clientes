@@ -1282,30 +1282,30 @@ function printInvoice(id) {
 </div>
         </div>
 
-        <div class="grid">
-          <div class="box">
-            <h3>Cliente</h3>
-            <p><strong>${escapeHtml(invoice.clientName || "-")}</strong></p>
-          </div>
+       <div class="grid">
+  <div class="box">
+    <h3>Cliente</h3>
 
-          <div class="box">
-  <h3>Cliente</h3>
+    <p><strong>${escapeHtml(invoice.clientName || "-")}</strong></p>
 
-  <p><strong>${escapeHtml(invoice.clientName || "-")}</strong></p>
+    ${invoice.clientTaxId ? `<p><strong>CIF:</strong> ${escapeHtml(invoice.clientTaxId)}</p>` : ""}
 
-  ${invoice.clientTaxId ? `<p><strong>CIF:</strong> ${escapeHtml(invoice.clientTaxId)}</p>` : ""}
+    ${invoice.clientAddress ? `<p>${escapeHtml(invoice.clientAddress)}</p>` : ""}
 
-  ${invoice.clientAddress ? `<p>${escapeHtml(invoice.clientAddress)}</p>` : ""}
+    ${(invoice.clientPostalCode || invoice.clientCity || invoice.clientProvince)
+      ? `<p>
+          ${escapeHtml(invoice.clientPostalCode || "")}
+          ${escapeHtml(invoice.clientCity || "")}
+          ${invoice.clientProvince ? " - " + escapeHtml(invoice.clientProvince) : ""}
+        </p>`
+      : ""}
+  </div>
 
-  ${(invoice.clientPostalCode || invoice.clientCity || invoice.clientProvince)
-    ? `<p>
-        ${escapeHtml(invoice.clientPostalCode || "")}
-        ${escapeHtml(invoice.clientCity || "")}
-        ${invoice.clientProvince ? " - " + escapeHtml(invoice.clientProvince) : ""}
-      </p>`
-    : ""}
+  <div class="box">
+    <h3>Obra / Trabajo</h3>
+    <p>${escapeHtml(invoice.projectName || "Sin obra asociada")}</p>
+  </div>
 </div>
-        </div>
 
         <div class="concept">
           <h3>Concepto general</h3>
