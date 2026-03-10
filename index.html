@@ -488,9 +488,143 @@
           <h3>Informes</h3>
         </div>
 
-        <div class="card">
-          <p>Aquí irán los informes mensual, trimestral y anual, con exportación CSV / Excel / PDF.</p>
-        </div>
+       <div class="card">
+
+  <div class="reports-filters">
+
+    <div class="field-group">
+      <label>Tipo de informe</label>
+      <select id="reportType">
+        <option value="monthly">Mensual</option>
+        <option value="quarterly">Trimestral</option>
+        <option value="annual">Anual</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label>Año</label>
+      <input type="number" id="reportYear" min="2020" max="2100">
+    </div>
+
+    <div class="field-group" id="reportMonthWrap">
+      <label>Mes</label>
+      <select id="reportMonth">
+        <option value="0">Enero</option>
+        <option value="1">Febrero</option>
+        <option value="2">Marzo</option>
+        <option value="3">Abril</option>
+        <option value="4">Mayo</option>
+        <option value="5">Junio</option>
+        <option value="6">Julio</option>
+        <option value="7">Agosto</option>
+        <option value="8">Septiembre</option>
+        <option value="9">Octubre</option>
+        <option value="10">Noviembre</option>
+        <option value="11">Diciembre</option>
+      </select>
+    </div>
+
+    <div class="field-group" id="reportQuarterWrap" style="display:none;">
+      <label>Trimestre</label>
+      <select id="reportQuarter">
+        <option value="1">1º Trimestre</option>
+        <option value="2">2º Trimestre</option>
+        <option value="3">3º Trimestre</option>
+        <option value="4">4º Trimestre</option>
+      </select>
+    </div>
+
+    <div class="reports-actions">
+      <button type="button" id="btnGenerateReport">Generar informe</button>
+      <button type="button" id="btnExportReportCsv">CSV</button>
+      <button type="button" id="btnExportReportExcel">Excel</button>
+      <button type="button" id="btnExportReportPdf">PDF</button>
+    </div>
+
+  </div>
+
+  <div id="reportSummary" class="report-summary"></div>
+
+</div>
+
+
+<div class="card">
+
+  <h4>Detalle de facturas</h4>
+
+  <div class="table-wrap">
+    <table id="reportInvoicesTable">
+      <thead>
+        <tr>
+          <th>Factura</th>
+          <th>Fecha</th>
+          <th>Cliente</th>
+          <th>Obra</th>
+          <th>Estado</th>
+          <th style="text-align:right;">Base</th>
+          <th style="text-align:right;">IVA</th>
+          <th style="text-align:right;">Total</th>
+        </tr>
+      </thead>
+      <tbody id="reportInvoicesBody">
+        <tr>
+          <td colspan="8">Genera un informe para ver resultados.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+
+<div class="card">
+
+  <h4>Resumen por cliente</h4>
+
+  <div class="table-wrap">
+    <table id="reportClientsTable">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th style="text-align:right;">Base</th>
+          <th style="text-align:right;">IVA</th>
+          <th style="text-align:right;">Total</th>
+        </tr>
+      </thead>
+      <tbody id="reportClientsBody">
+        <tr>
+          <td colspan="4">Sin datos todavía</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+
+<div class="card">
+
+  <h4>Resumen por obra</h4>
+
+  <div class="table-wrap">
+    <table id="reportProjectsTable">
+      <thead>
+        <tr>
+          <th>Obra</th>
+          <th style="text-align:right;">Base</th>
+          <th style="text-align:right;">IVA</th>
+          <th style="text-align:right;">Total</th>
+        </tr>
+      </thead>
+      <tbody id="reportProjectsBody">
+        <tr>
+          <td colspan="4">Sin datos todavía</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
       </section>
 
       <section id="view-settings" class="view">
