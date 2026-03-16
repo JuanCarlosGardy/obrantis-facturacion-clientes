@@ -30,6 +30,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const budgetsCollection = collection(db, "budgets");
 const auth = getAuth(app);
 const clientsCollection = collection(db, "clients");
 const projectsCol = collection(db, "projects");
@@ -102,7 +103,48 @@ async function saveInvoiceToFirestore(invoiceData) {
     throw error;
   }
 }
+async function fetchBudgetsFromFirestore() {
+  const snapshot = await getDocs(query(budgetsCollection, orderBy("budgetDate", "desc")));
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
+  }));
+}
 
+async function saveBudgetToFirestore(data) {
+  const payload = {
+    ...data,
+    updatedAt: serverTimestamp()
+  };
+
+  if (editingBudgetId) {
+    const ref = doc(db, "budgets", editingBudgetId);
+    await updateDoc(ref, payload);
+    return editingBudgetId;
+  }
+
+  const ref = doc(budgetsCollection);
+  await setDoc(ref, {
+    ...payload,
+    id: ref.id,
+    createdAt: serverTimestamp()
+  });
+
+  return ref.id;
+}
+
+async function loadBudgetsFromFirestore() {
+  try {
+    budgets = await fetchBudgetsFromFirestore();
+    renderBudgetsTable();
+    refreshNextBudgetNumber();
+  } catch (error) {
+    console.error("Error cargando listado de presupuestos:", error);
+    budgets = [];
+    renderBudgetsTable();
+    refreshNextBudgetNumber();
+  }
+}
 async function deleteInvoiceFromFirestore(invoiceId) {
   try {
     await deleteDoc(doc(db, "invoices", invoiceId));
@@ -110,6 +152,10 @@ async function deleteInvoiceFromFirestore(invoiceId) {
     console.error("Error eliminando factura en Firestore:", error);
     throw error;
   }
+}
+async function deleteBudgetFromFirestore(id) {
+  const ref = doc(db, "budgets", id);
+  await deleteDoc(ref);
 }
 async function loadInvoicesFromFirestore() {
   try {
@@ -146,6 +192,10 @@ const viewConfig = {
   invoices: {
     title: "Facturas",
     subtitle: "Emisión, seguimiento de cobro e impresión"
+  },
+    budgets: {
+    title: "Presupuestos",
+    subtitle: "Creación, seguimiento e impresión de presupuestos"
   },
   reports: {
     title: "Informes",
@@ -374,7 +424,11 @@ if (btnQuickNewProject) {
 if (btnQuickNewInvoice) {
   btnQuickNewInvoice.addEventListener("click", () => activateView("invoices"));
 }
+const btnQuickNewBudget = document.getElementById("btnQuickNewBudget");
 
+if (btnQuickNewBudget) {
+  btnQuickNewBudget.addEventListener("click", () => activateView("budgets"));
+}
 if (btnQuickReports) {
   btnQuickReports.addEventListener("click", () => activateView("reports"));
 }
@@ -2294,11 +2348,82 @@ const invoiceSearchInput = document.getElementById("invoiceSearch");
 const btnShowInvoiceForm = document.getElementById("btnShowInvoiceForm");
 const btnCancelInvoiceEdit = document.getElementById("btnCancelInvoiceEdit");
 const btnSaveInvoice = document.getElementById("btnSaveInvoice");
+let budgets = [];
+let editingBudgetId = null;
+let budgetLineCounter = 0;
 
+const budgetForm = document.getElementById("budgetForm");
+const budgetIdInput = document.getElementById("budgetId");
+const budgetNumberInput = document.getElementById("budgetNumber");
+const budgetDateInput = document.getElementById("budgetDate");
+const budgetClientIdInput = document.getElementById("budgetClientId");
+const budgetProjectIdInput = document.getElementById("budgetProjectId");
+const budgetConceptInput = document.getElementById("budgetConcept");
+const budgetLinesContainer = document.getElementById("budgetLinesContainer");
+const btnAddBudgetLine = document.getElementById("btnAddBudgetLine");
+const budgetStatusInput = document.getElementById("budgetStatus");
+const budgetValidUntilInput = document.getElementById("budgetValidUntil");
+const budgetReferenceInput = document.getElementById("budgetReference");
+const budgetDeliveryTimeInput = document.getElementById("budgetDeliveryTime");
+const budgetNotesInput = document.getElementById("budgetNotes");
+const budgetInternalNotesInput = document.getElementById("budgetInternalNotes");
+const budgetBaseTotalEl = document.getElementById("budgetBaseTotal");
+const budgetVatTotalEl = document.getElementById("budgetVatTotal");
+const budgetGrandTotalEl = document.getElementById("budgetGrandTotal");
+const budgetsTableBody = document.getElementById("budgetsTableBody");
+const budgetSearchInput = document.getElementById("budgetSearch");
+const btnShowBudgetForm = document.getElementById("btnShowBudgetForm");
+const btnCancelBudgetEdit = document.getElementById("btnCancelBudgetEdit");
+const btnSaveBudget = document.getElementById("btnSaveBudget");
 function generateInvoiceId() {
   return "INV-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
 }
+function generateBudgetId() {
+  return "BUD-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+}
 
+function getNextBudgetNumber() {
+  const year = String(getCurrentYear());
+
+  const sameYearBudgets = budgets.filter((item) => {
+    const numberText = String(item.budgetNumber || "").trim();
+    return numberText.startsWith(`PRES-${year}-`);
+  });
+
+  if (!sameYearBudgets.length) {
+    return `PRES-${year}-001`;
+  }
+
+  let maxSerial = 0;
+
+  sameYearBudgets.forEach((item) => {
+    const numberText = String(item.budgetNumber || "").trim();
+    const parts = numberText.split("-");
+
+    if (parts.length !== 3) return;
+    if (parts[0] !== "PRES") return;
+    if (parts[1] !== year) return;
+
+    const serial = Number(parts[2]);
+    if (!Number.isNaN(serial) && serial > maxSerial) {
+      maxSerial = serial;
+    }
+  });
+
+  const nextSerial = maxSerial + 1;
+  return `PRES-${year}-${String(nextSerial).padStart(3, "0")}`;
+}
+
+function refreshNextBudgetNumber() {
+  if (!budgetNumberInput) return;
+  if (editingBudgetId) return;
+
+  budgetNumberInput.value = getNextBudgetNumber();
+}
+
+function isValidBudgetNumberFormat(value) {
+  return /^PRES-\d{4}-\d{3}$/.test(String(value || "").trim());
+}
 function getCurrentYear() {
   return new Date().getFullYear();
 }
@@ -2402,7 +2527,96 @@ function addInvoiceLine(data = {}) {
 
   updateInvoiceTotals();
 }
+function addBudgetLine(data = {}) {
+  budgetLineCounter += 1;
 
+  const line = document.createElement("div");
+  line.className = "invoice-line";
+  line.dataset.lineId = String(budgetLineCounter);
+
+  line.innerHTML = `
+    <div class="field">
+      <label>Descripción</label>
+      <input type="text" class="line-description" value="${escapeHtml(data.description || "")}" />
+    </div>
+
+    <div class="field">
+      <label>Cantidad</label>
+      <input type="number" class="line-quantity" min="0" step="0.01" value="${escapeHtml(data.quantity ?? 1)}" />
+    </div>
+
+    <div class="field">
+      <label>Precio unitario</label>
+      <input type="number" class="line-unit-price" min="0" step="0.01" value="${escapeHtml(data.unitPrice ?? 0)}" />
+    </div>
+
+    <div class="field">
+      <label>IVA</label>
+      <select class="line-vat-rate">
+        <option value="0" ${Number(data.vatRate) === 0 ? "selected" : ""}>0%</option>
+        <option value="4" ${Number(data.vatRate) === 4 ? "selected" : ""}>4%</option>
+        <option value="10" ${Number(data.vatRate) === 10 ? "selected" : ""}>10%</option>
+        <option value="21" ${Number(data.vatRate) === 21 || data.vatRate == null ? "selected" : ""}>21%</option>
+      </select>
+    </div>
+
+    <button type="button" class="line-remove-btn">Quitar</button>
+  `;
+
+  budgetLinesContainer.appendChild(line);
+
+  line.querySelectorAll("input, select").forEach((el) => {
+    el.addEventListener("input", updateBudgetTotals);
+    el.addEventListener("change", updateBudgetTotals);
+  });
+
+  const removeBtn = line.querySelector(".line-remove-btn");
+  if (removeBtn) {
+    removeBtn.addEventListener("click", () => {
+      line.remove();
+      updateBudgetTotals();
+    });
+  }
+
+  updateBudgetTotals();
+}
+function getBudgetLinesData() {
+  const lines = [...document.querySelectorAll("#budgetLinesContainer .invoice-line")];
+
+  return lines.map((line) => {
+    const description = line.querySelector(".line-description")?.value.trim() || "";
+    const quantity = Number(line.querySelector(".line-quantity")?.value || 0);
+    const unitPrice = Number(line.querySelector(".line-unit-price")?.value || 0);
+    const vatRate = Number(line.querySelector(".line-vat-rate")?.value || 0);
+
+    const baseAmount = quantity * unitPrice;
+    const vatAmount = baseAmount * (vatRate / 100);
+    const lineTotal = baseAmount + vatAmount;
+
+    return {
+      description,
+      quantity,
+      unitPrice,
+      vatRate,
+      baseAmount,
+      vatAmount,
+      lineTotal
+    };
+  });
+}
+function updateBudgetTotals() {
+  const lines = getBudgetLinesData();
+
+  const baseTotal = lines.reduce((sum, line) => sum + Number(line.baseAmount || 0), 0);
+  const vatTotal = lines.reduce((sum, line) => sum + Number(line.vatAmount || 0), 0);
+  const grandTotal = baseTotal + vatTotal;
+
+  if (budgetBaseTotalEl) budgetBaseTotalEl.textContent = formatCurrency(baseTotal);
+  if (budgetVatTotalEl) budgetVatTotalEl.textContent = formatCurrency(vatTotal);
+  if (budgetGrandTotalEl) budgetGrandTotalEl.textContent = formatCurrency(grandTotal);
+
+  return { baseTotal, vatTotal, grandTotal, lines };
+}
 function getInvoiceLinesData() {
   const lines = [...document.querySelectorAll(".invoice-line")];
 
@@ -2473,7 +2687,38 @@ function fillInvoiceProjectOptions(clientId = "", selectedProjectId = "") {
 
   invoiceProjectIdInput.innerHTML = html;
 }
+function fillBudgetClientOptions(selectedClientId = "") {
+  if (!budgetClientIdInput) return;
 
+  const sortedClients = [...clients].sort((a, b) => a.name.localeCompare(b.name, "es"));
+  let html = `<option value="">Selecciona un cliente</option>`;
+
+  html += sortedClients.map((client) => `
+    <option value="${escapeHtml(client.id)}" ${client.id === selectedClientId ? "selected" : ""}>
+      ${escapeHtml(client.name)}
+    </option>
+  `).join("");
+
+  budgetClientIdInput.innerHTML = html;
+}
+
+function fillBudgetProjectOptions(clientId = "", selectedProjectId = "") {
+  if (!budgetProjectIdInput) return;
+
+  let html = `<option value="">Sin obra asociada</option>`;
+
+  const filteredProjects = projects
+    .filter((project) => !clientId || project.clientId === clientId)
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
+
+  html += filteredProjects.map((project) => `
+    <option value="${escapeHtml(project.id)}" ${project.id === selectedProjectId ? "selected" : ""}>
+      ${escapeHtml(project.name)}
+    </option>
+  `).join("");
+
+  budgetProjectIdInput.innerHTML = html;
+}
 function resetInvoiceForm() {
   editingInvoiceId = null;
   invoiceIdInput.value = "";
@@ -2489,7 +2734,137 @@ function resetInvoiceForm() {
   addInvoiceLine();
   updateInvoiceTotals();
 }
+function resetBudgetForm() {
+  editingBudgetId = null;
 
+  if (budgetIdInput) budgetIdInput.value = "";
+  if (budgetForm) budgetForm.reset();
+
+  if (budgetLinesContainer) {
+    budgetLinesContainer.innerHTML = "";
+  }
+
+  if (budgetStatusInput) {
+    budgetStatusInput.value = "Pendiente";
+  }
+
+  if (budgetDateInput) {
+    budgetDateInput.value = new Date().toISOString().split("T")[0];
+  }
+
+  fillBudgetClientOptions();
+fillBudgetProjectOptions();
+
+  refreshNextBudgetNumber();
+
+  if (btnSaveBudget) {
+    btnSaveBudget.textContent = "Guardar presupuesto";
+  }
+if (budgetStatusInput) budgetStatusInput.value = "Pendiente";
+  addBudgetLine();
+  updateBudgetTotals();
+}
+function getBudgetFormData() {
+  const totals = updateBudgetTotals();
+
+  const selectedClient =
+    clients.find((client) => client.id === budgetClientIdInput.value) || null;
+
+  const selectedProject =
+    projects.find((project) => project.id === budgetProjectIdInput.value) || null;
+
+  return {
+    id: editingBudgetId || generateBudgetId(),
+
+    budgetNumber: budgetNumberInput.value.trim(),
+    budgetYear: budgetNumberInput.value.trim().split("-")[1] || getCurrentYear(),
+
+    budgetDate: budgetDateInput.value,
+
+    clientId: selectedClient ? selectedClient.id : "",
+    clientName: selectedClient ? selectedClient.name : "",
+    clientTaxId: selectedClient ? selectedClient.taxId : "",
+    clientAddress: selectedClient ? selectedClient.address : "",
+    clientCity: selectedClient ? selectedClient.city : "",
+    clientProvince: selectedClient ? selectedClient.province : "",
+    clientPostalCode: selectedClient ? selectedClient.postalCode : "",
+
+    projectId: selectedProject ? selectedProject.id : "",
+    projectName: selectedProject ? selectedProject.name : "",
+
+    concept: budgetConceptInput.value.trim(),
+
+    lines: totals.lines,
+
+    baseTotal: totals.baseTotal,
+    vatTotal: totals.vatTotal,
+    totalAmount: totals.grandTotal,
+
+    status: budgetStatusInput.value || "Pendiente",
+    validUntil: budgetValidUntilInput.value,
+    reference: budgetReferenceInput.value,
+    deliveryTime: budgetDeliveryTimeInput.value,
+
+    notes: budgetNotesInput.value.trim(),
+    internalNotes: budgetInternalNotesInput.value.trim()
+    };
+}
+function renderBudgetsTable(items = budgets) {
+  if (!budgetsTableBody) return;
+
+  if (!items.length) {
+    budgetsTableBody.innerHTML = `
+      <tr>
+        <td colspan="10" class="empty-cell">No hay presupuestos todavía.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  budgetsTableBody.innerHTML = items
+    .map(
+      (budget) => `
+    <tr>
+    <td>${getBudgetStatusBadge(budget.status)}</td>
+      <td>${escapeHtml(budget.budgetNumber || "-")}</td>
+      <td>${escapeHtml(formatShortDate(budget.budgetDate))}</td>
+      <td>${escapeHtml(budget.clientName || "-")}</td>
+      <td>${escapeHtml(budget.projectName || "-")}</td>
+      <td>${escapeHtml(budget.concept || "-")}</td>
+      <td>${escapeHtml(formatCurrency(budget.baseTotal))}</td>
+      <td>${escapeHtml(formatCurrency(budget.vatTotal))}</td>
+      <td>${escapeHtml(formatCurrency(budget.totalAmount))}</td>
+      <td>${escapeHtml(budget.status || "-")}</td>
+      <td>
+       <td>
+  <div class="row-actions">
+    <button type="button" class="btn-small" onclick="printBudget('${budget.id}')">Imprimir</button>
+    ${
+      budget.status === "Convertido en factura"
+        ? `<button type="button" class="btn-small" disabled title="Este presupuesto ya fue convertido">Convertido</button>`
+        : `<button type="button" class="btn-small" onclick="convertBudgetToInvoice('${budget.id}')">Convertir</button>`
+    }
+    <button type="button" class="btn-small" onclick="editBudget('${budget.id}')">Editar</button>
+    <button type="button" class="btn-small danger" onclick="deleteBudget('${budget.id}')">Eliminar</button>
+  </div>
+</td>
+    </tr>
+  `
+    )
+    .join("");
+}
+function getBudgetStatusBadge(status){
+
+  if(!status){
+    return `<span class="status-badge status-default">Pendiente</span>`;
+  }
+
+  if(status === "Convertido en factura"){
+    return `<span class="status-badge status-convertido">Convertido</span>`;
+  }
+
+  return `<span class="status-badge status-default">${status}</span>`;
+}
 function getPaymentBadgeClass(status) {
   if (status === "Pendiente") return "payment-badge payment-pending";
   if (status === "Parcialmente cobrada") return "payment-badge payment-partial";
@@ -2573,7 +2948,7 @@ function printInvoice(id) {
 
   const linesHtml = (invoice.lines || []).map((line) => `
     <tr>
-      <td>${escapeHtml(line.description || "-")}</td>
+      <td class="line-description-cell">${escapeHtml(line.description || "-")}</td>
       <td style="text-align:right;">${Number(line.quantity || 0).toLocaleString("es-ES")}</td>
       <td style="text-align:right;">${formatCurrency(line.unitPrice || 0)}</td>
       <td style="text-align:right;">${Number(line.vatRate || 0)}%</td>
@@ -2582,7 +2957,16 @@ function printInvoice(id) {
       <td style="text-align:right;">${formatCurrency(line.lineTotal || 0)}</td>
     </tr>
   `).join("");
+const notesLines = (invoice.notes || "")
+  .split("\n")
+  .map((l) => l.trim())
+  .filter((l) => l.length > 0);
 
+const notesHtml = notesLines.length
+  ? `<ul class="notes-list">
+      ${notesLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}
+     </ul>`
+  : "<p>Sin observaciones</p>";
   const printWindow = window.open("", "_blank", "width=1000,height=800");
   if (!printWindow) {
     alert("El navegador ha bloqueado la ventana de impresión.");
@@ -2597,174 +2981,157 @@ function printInvoice(id) {
       <title>Factura ${escapeHtml(invoice.invoiceNumber || "")}</title>
       <style>
         * { box-sizing: border-box; }
+
         @page {
-  size: A4;
-  margin: 12mm;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  color: #111;
-  background: #fff;
-}
-
-body {
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
-
-.invoice-print {
-  width: 100%;
-}
-
-.invoice-header,
-.invoice-client,
-.invoice-meta,
-.invoice-concept,
-.invoice-notes,
-.invoice-bank,
-.invoice-totals-wrapper,
-.invoice-summary-block {
-  width: 100%;
-}
-
-.invoice-lines-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  margin-top: 14px;
-}
-
-.invoice-lines-table th,
-.invoice-lines-table td {
-  border: 1px solid #cfcfcf;
-  padding: 8px 6px;
-  vertical-align: top;
-  font-size: 12px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-.invoice-lines-table th {
-  background: #f3f3f3;
-  font-weight: 700;
-}
-
-.invoice-lines-table thead {
-  display: table-header-group;
-}
-
-.invoice-lines-table tfoot {
-  display: table-footer-group;
-}
-
-.invoice-lines-table tr {
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
-
-.invoice-lines-table td,
-.invoice-lines-table th {
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
-
-.invoice-summary-block {
-  margin-top: 14px;
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
-
-.invoice-totals-wrapper {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
-
-.invoice-totals-box {
-  width: 320px;
-  max-width: 100%;
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
-
-.invoice-totals-box table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.invoice-totals-box td {
-  border: 1px solid #cfcfcf;
-  padding: 8px 10px;
-  font-size: 12px;
-}
-
-.invoice-total-final td {
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.invoice-notes,
-.invoice-bank {
-  margin-top: 12px;
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
-
-.section-title {
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-
-@media print {
-  .invoice-lines-table {
-    page-break-after: auto;
-  }
-
-  .invoice-lines-table tr {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  .invoice-totals-wrapper,
-  .invoice-totals-box,
-  .invoice-summary-block,
-  .invoice-notes,
-  .invoice-bank {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  .no-break {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  .force-break-before {
-    page-break-before: always !important;
-    break-before: page !important;
-  }
-}
-        body {
-          font-family: Arial, Helvetica, sans-serif;
-          margin: 0;
-          padding: 30px;
-          color: #111827;
-          background: #ffffff;
+          size: A4;
+          margin: 12mm;
         }
+
+        html, body {
+          margin: 0;
+          padding: 0;
+          font-family: Arial, sans-serif;
+          color: #111;
+          background: #fff;
+        }
+
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .invoice-print {
+          width: 100%;
+        }
+
+        .invoice-header,
+        .invoice-client,
+        .invoice-meta,
+        .invoice-concept,
+        .invoice-notes,
+        .invoice-bank,
+        .invoice-totals-wrapper,
+        .invoice-summary-block {
+          width: 100%;
+        }
+
+        .invoice-lines-table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+          margin-top: 14px;
+        }
+
+        .invoice-lines-table th,
+        .invoice-lines-table td {
+          border: 1px solid #cfcfcf;
+          padding: 8px 6px;
+          vertical-align: top;
+          font-size: 12px;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+/* Ajuste de anchos para dar más espacio a Descripción */
+.invoice-lines-table th:nth-child(2),
+.invoice-lines-table td:nth-child(2) {
+  width: 6%;
+  text-align: right;
+}
+
+.invoice-lines-table th:nth-child(3),
+.invoice-lines-table td:nth-child(3) {
+  width: 10%;
+  text-align: right;
+}
+
+.invoice-lines-table th:nth-child(4),
+.invoice-lines-table td:nth-child(4) {
+  width: 6%;
+  text-align: right;
+}
+
+.invoice-lines-table th:nth-child(5),
+.invoice-lines-table td:nth-child(5),
+.invoice-lines-table th:nth-child(6),
+.invoice-lines-table td:nth-child(6),
+.invoice-lines-table th:nth-child(7),
+.invoice-lines-table td:nth-child(7) {
+  width: 12%;
+  text-align: right;
+}
+
+.invoice-lines-table th:first-child,
+.invoice-lines-table td:first-child {
+  width: auto;
+}
+        .invoice-lines-table th {
+          background: #f3f3f3;
+          font-weight: 700;
+          text-align: left;
+        }
+
+        .invoice-lines-table thead {
+          display: table-header-group;
+        }
+
+        .invoice-lines-table tr {
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .invoice-totals-wrapper {
+          width: 100%;
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 12px;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .invoice-totals-box {
+          width: 320px;
+          max-width: 100%;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .invoice-totals-box table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .invoice-totals-box td {
+          border: 1px solid #cfcfcf;
+          padding: 8px 10px;
+          font-size: 12px;
+        }
+
+        .invoice-total-final td {
+          font-weight: 700;
+          font-size: 13px;
+        }
+
+        .invoice-notes,
+        .invoice-bank {
+          margin-top: 12px;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .section-title {
+          font-weight: 700;
+          margin-bottom: 6px;
+        }
+
+        body {
+          padding: 30px;
+        }
+
         .sheet {
           max-width: 1000px;
           margin: 0 auto;
         }
+
         .header {
           display: flex;
           justify-content: space-between;
@@ -2774,115 +3141,165 @@ body {
           padding-bottom: 16px;
           margin-bottom: 24px;
         }
+
         .company h1 {
           margin: 0 0 8px;
           font-size: 28px;
           color: #1f4e79;
         }
+
         .company p,
         .meta p,
         .box p {
           margin: 4px 0;
           line-height: 1.4;
         }
-        .observations {
-  margin-top: 12px;
-}
 
-.observations p {
-  margin: 4px 0;
-}
+        .observations {
+          margin-top: 12px;
+        }
+
+        .observations p {
+          margin: 4px 0;
+        }
+
         .meta {
           text-align: right;
         }
+
         .grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 20px;
           margin-bottom: 24px;
         }
+
         .box {
           border: 1px solid #d1d5db;
           border-radius: 10px;
           padding: 14px;
         }
+
         .box h3 {
           margin: 0 0 10px;
           font-size: 16px;
           color: #1f4e79;
         }
+
         .concept {
           margin-bottom: 20px;
           border: 1px solid #d1d5db;
           border-radius: 10px;
           padding: 14px;
         }
+
         .concept h3 {
           margin: 0 0 10px;
           font-size: 16px;
           color: #1f4e79;
         }
+
         table {
           width: 100%;
           border-collapse: collapse;
           margin-bottom: 20px;
         }
+
         th, td {
           border: 1px solid #d1d5db;
           padding: 10px 8px;
           font-size: 13px;
           vertical-align: top;
         }
+
         th {
           background: #f3f4f6;
           text-align: left;
         }
+
         .totals {
-  width: 320px;
-  margin-left: auto;
-  margin-top: 18px;
-  border-collapse: separate;
-  border-spacing: 0;
-  border: 1px solid #d9d9d9;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #fafafa;
-}
+          width: 320px;
+          margin-left: auto;
+          margin-top: 18px;
+          border-collapse: separate;
+          border-spacing: 0;
+          border: 1px solid #d9d9d9;
+          border-radius: 10px;
+          overflow: hidden;
+          background: #fafafa;
+        }
 
-.totals td {
-  padding: 10px 14px;
-  font-size: 14px;
-  border-bottom: 1px solid #e7e7e7;
-}
+        .totals td {
+          padding: 10px 14px;
+          font-size: 14px;
+          border-bottom: 1px solid #e7e7e7;
+        }
 
-.totals tr:last-child td {
-  border-bottom: none;
-}
+        .totals tr:last-child td {
+          border-bottom: none;
+        }
 
-.totals tr.final td {
-  background: #f1f1f1;
-  font-size: 16px;
-}
+        .totals tr.final td {
+          background: #f1f1f1;
+          font-size: 16px;
+        }
 
-.totals tr.final strong {
-  font-size: 18px;
-}  
+        .totals tr.final strong {
+          font-size: 18px;
+        }
+
         .notes {
           margin-top: 24px;
           border-top: 1px solid #d1d5db;
           padding-top: 16px;
         }
+
         .notes h3 {
           margin: 0 0 10px;
           font-size: 16px;
           color: #1f4e79;
         }
+.notes-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.notes-list li {
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+  .bank-box {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
         @media print {
           body {
             padding: 0;
           }
+
           .sheet {
             max-width: none;
+          }
+.bank-box {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+          .invoice-lines-table {
+            page-break-after: auto;
+          }
+
+          .invoice-lines-table tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+
+          .invoice-totals-wrapper,
+          .invoice-totals-box,
+          .invoice-summary-block,
+          .invoice-notes,
+          .invoice-bank {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       </style>
@@ -2890,58 +3307,53 @@ body {
     <body>
       <div class="sheet">
         <div class="header">
-  <div class="company">
-    <div style="display:flex; align-items:flex-start; gap:14px;">
-      <img
-        src="logo-obrantis.png"
-        alt="Logo OBRANTIS"
-        style="width:90px; height:auto; object-fit:contain;"
-      />
-      <div>
-        <h1 style="margin:0 0 6px 0;">OBRANTIS S.L.</h1>
-        <p style="margin:2px 0;"><strong>Reformas y Construcción</strong></p>
-        <p style="margin:2px 0;"><strong>NIF:</strong> B26636761</p>
-        <p style="margin:2px 0;">Avda. Castilla-La Mancha, 22</p>
-        <p style="margin:2px 0;">45200 – Illescas – Toledo</p>
-        <p style="margin:2px 0;">Email: contacto@obrantis.com</p>
-      </div>
-    </div>
-  </div>
+          <div class="company">
+            <div style="display:flex; align-items:flex-start; gap:14px;">
+              <img
+                src="logo-obrantis.png"
+                alt="Logo OBRANTIS"
+                style="width:90px; height:auto; object-fit:contain;"
+              />
+              <div>
+                <h1 style="margin:0 0 6px 0;">OBRANTIS S.L.</h1>
+                <p style="margin:2px 0;"><strong>Reformas y Construcción</strong></p>
+                <p style="margin:2px 0;"><strong>NIF:</strong> B26636761</p>
+                <p style="margin:2px 0;">Avda. Castilla-La Mancha, 22</p>
+                <p style="margin:2px 0;">45200 – Illescas – Toledo</p>
+                <p style="margin:2px 0;">Email: contacto@obrantis.com</p>
+              </div>
+            </div>
+          </div>
 
-  <div class="meta">
-    <p><strong>FACTURA</strong></p>
-    <p><strong>Nº:</strong> ${escapeHtml(invoice.invoiceNumber || "-")}</p>
-    <p><strong>Fecha:</strong> ${escapeHtml(formatShortDate(invoice.invoiceDate))}</p>
-    <p><strong>Forma de pago:</strong> ${escapeHtml(invoice.paymentMethod || invoice.paymentType || invoice.paymentForm || "-")}</p>
-    <p><strong>Estado de cobro:</strong> ${escapeHtml(invoice.paymentStatus || "-")}</p>
-  </div>
-</div>
+          <div class="meta">
+            <p><strong>FACTURA</strong></p>
+            <p><strong>Nº:</strong> ${escapeHtml(invoice.invoiceNumber || "-")}</p>
+            <p><strong>Fecha:</strong> ${escapeHtml(formatShortDate(invoice.invoiceDate))}</p>
+            <p><strong>Forma de pago:</strong> ${escapeHtml(invoice.paymentMethod || invoice.paymentType || invoice.paymentForm || "-")}</p>
+            <p><strong>Estado de cobro:</strong> ${escapeHtml(invoice.paymentStatus || "-")}</p>
+          </div>
         </div>
 
-       <div class="grid">
-  <div class="box">
-    <h3>Cliente</h3>
+        <div class="grid">
+          <div class="box">
+            <h3>Cliente</h3>
+            <p><strong>${escapeHtml(invoice.clientName || "-")}</strong></p>
+            ${invoice.clientTaxId ? `<p><strong>CIF:</strong> ${escapeHtml(invoice.clientTaxId)}</p>` : ""}
+            ${invoice.clientAddress ? `<p>${escapeHtml(invoice.clientAddress)}</p>` : ""}
+            ${(invoice.clientPostalCode || invoice.clientCity || invoice.clientProvince)
+              ? `<p>
+                  ${escapeHtml(invoice.clientPostalCode || "")}
+                  ${escapeHtml(invoice.clientCity || "")}
+                  ${invoice.clientProvince ? " - " + escapeHtml(invoice.clientProvince) : ""}
+                </p>`
+              : ""}
+          </div>
 
-    <p><strong>${escapeHtml(invoice.clientName || "-")}</strong></p>
-
-    ${invoice.clientTaxId ? `<p><strong>CIF:</strong> ${escapeHtml(invoice.clientTaxId)}</p>` : ""}
-
-    ${invoice.clientAddress ? `<p>${escapeHtml(invoice.clientAddress)}</p>` : ""}
-
-    ${(invoice.clientPostalCode || invoice.clientCity || invoice.clientProvince)
-      ? `<p>
-          ${escapeHtml(invoice.clientPostalCode || "")}
-          ${escapeHtml(invoice.clientCity || "")}
-          ${invoice.clientProvince ? " - " + escapeHtml(invoice.clientProvince) : ""}
-        </p>`
-      : ""}
-  </div>
-
-  <div class="box">
-    <h3>Obra / Trabajo</h3>
-    <p>${escapeHtml(invoice.projectName || "Sin obra asociada")}</p>
-  </div>
-</div>
+          <div class="box">
+            <h3>Obra / Trabajo</h3>
+            <p>${escapeHtml(invoice.projectName || "Sin obra asociada")}</p>
+          </div>
+        </div>
 
         <div class="concept">
           <h3>Concepto general</h3>
@@ -2949,17 +3361,17 @@ body {
         </div>
 
         <table class="invoice-lines-table">
-          <thead>
-            <tr>
-              <th>Descripción</th>
-              <th style="text-align:right;">Cantidad</th>
-              <th style="text-align:right;">P. unitario</th>
-              <th style="text-align:right;">IVA</th>
-              <th style="text-align:right;">Base</th>
-              <th style="text-align:right;">Cuota IVA</th>
-              <th style="text-align:right;">Total</th>
-            </tr>
-          </thead>
+  <thead>
+    <tr>
+      <th>Descripción</th>
+      <th style="text-align:right;">Cant.</th>
+      <th style="text-align:right;">P. unit.</th>
+      <th style="text-align:right;">IVA</th>
+      <th style="text-align:right;">Base</th>
+      <th style="text-align:right;">Cuota</th>
+      <th style="text-align:right;">Total</th>
+    </tr>
+  </thead>
           <tbody>
             ${linesHtml || `<tr><td colspan="7">Sin líneas</td></tr>`}
           </tbody>
@@ -2982,14 +3394,16 @@ body {
 
         <div class="box observations">
   <h3>Observaciones</h3>
-  <p>${escapeHtml(invoice.notes || "Sin observaciones")}</p>
+  ${notesHtml}
 </div>
-        <div class="box" style="margin-top:16px;">
-  <h3>Datos bancarios</h3>
-  <p><strong>IBAN:</strong> ES6500490456942910764001</p>
-  <p><strong>Titular:</strong> OBRANTIS S.L.</p>
-</div>
-</body>
+
+        <div class="box bank-box" style="margin-top:16px;">
+          <h3>Datos bancarios</h3>
+          <p><strong>IBAN:</strong> ES6500490456942910764001</p>
+          <p><strong>Titular:</strong> OBRANTIS S.L.</p>
+        </div>
+      </div>
+    </body>
     </html>
   `;
 
@@ -3002,6 +3416,399 @@ body {
     printWindow.print();
   }, 300);
 }
+
+  
+function printBudget(id) {
+  const budget = budgets.find((item) => item.id === id);
+  if (!budget) {
+    alert("No se encontró el presupuesto.");
+    return;
+  }
+
+  const linesHtml = (budget.lines || []).map((line) => `
+    <tr>
+      <td class="line-description-cell">${escapeHtml(line.description || "-")}</td>
+      <td>${Number(line.quantity || 0).toLocaleString("es-ES")}</td>
+      <td>${formatCurrency(line.unitPrice || 0)}</td>
+      <td>${Number(line.vatRate || 0)}%</td>
+      <td>${formatCurrency(line.baseAmount || 0)}</td>
+      <td>${formatCurrency(line.vatAmount || 0)}</td>
+      <td>${formatCurrency(line.lineTotal || 0)}</td>
+    </tr>
+  `).join("");
+
+  const notesLines = (budget.notes || "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  const notesHtml = notesLines.length
+    ? `<ul class="notes-list">
+        ${notesLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}
+       </ul>`
+    : "<p>Sin observaciones</p>";
+
+  const printWindow = window.open("", "_blank", "width=1000,height=850");
+  if (!printWindow) {
+    alert("El navegador ha bloqueado la ventana de impresión.");
+    return;
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Presupuesto ${escapeHtml(budget.budgetNumber || "")}</title>
+      <style>
+        @page {
+          size: A4;
+          margin: 12mm;
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
+        html, body {
+          margin: 0;
+          padding: 0;
+          font-family: Arial, sans-serif;
+          color: #111;
+          background: #fff;
+        }
+
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          padding: 24px;
+        }
+
+        .sheet {
+          max-width: 1000px;
+          margin: 0 auto;
+        }
+
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 24px;
+          border-bottom: 2px solid #1f4e79;
+          padding-bottom: 16px;
+          margin-bottom: 22px;
+        }
+
+        .company h1 {
+          margin: 0 0 6px 0;
+          font-size: 28px;
+          color: #1f4e79;
+        }
+
+        .company p,
+        .meta p,
+        .box p {
+          margin: 3px 0;
+          line-height: 1.4;
+        }
+
+        .meta {
+          text-align: right;
+        }
+
+        .grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 18px;
+          margin-bottom: 18px;
+        }
+
+        .box {
+          border: 1px solid #d1d5db;
+          border-radius: 10px;
+          padding: 14px;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .box h3 {
+          margin: 0 0 10px 0;
+          font-size: 16px;
+          color: #1f4e79;
+        }
+
+        .concept {
+          margin-bottom: 18px;
+          border: 1px solid #d1d5db;
+          border-radius: 10px;
+          padding: 14px;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .concept h3 {
+          margin: 0 0 10px 0;
+          font-size: 16px;
+          color: #1f4e79;
+        }
+
+        .budget-lines-table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+          margin-top: 14px;
+          page-break-after: auto;
+        }
+
+        .budget-lines-table thead {
+          display: table-header-group;
+        }
+
+        .budget-lines-table tr {
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .budget-lines-table th,
+        .budget-lines-table td {
+          border: 1px solid #d1d5db;
+          padding: 8px 6px;
+          font-size: 12px;
+          vertical-align: top;
+          word-break: break-word;
+          overflow-wrap: break-word;
+        }
+
+        .budget-lines-table th:nth-child(2),
+        .budget-lines-table td:nth-child(2) {
+          width: 6%;
+          text-align: right;
+        }
+
+        .budget-lines-table th:nth-child(3),
+        .budget-lines-table td:nth-child(3) {
+          width: 10%;
+          text-align: right;
+        }
+
+        .budget-lines-table th:nth-child(4),
+        .budget-lines-table td:nth-child(4) {
+          width: 6%;
+          text-align: right;
+        }
+
+        .budget-lines-table th:nth-child(5),
+        .budget-lines-table td:nth-child(5),
+        .budget-lines-table th:nth-child(6),
+        .budget-lines-table td:nth-child(6),
+        .budget-lines-table th:nth-child(7),
+        .budget-lines-table td:nth-child(7) {
+          width: 12%;
+          text-align: right;
+        }
+
+        .budget-lines-table th:first-child,
+        .budget-lines-table td:first-child {
+          width: auto;
+        }
+
+        .budget-lines-table th {
+          background: #f3f4f6;
+          text-align: left;
+        }
+
+        .line-description-cell {
+          white-space: normal;
+          word-break: break-word;
+          overflow-wrap: break-word;
+          line-height: 1.35;
+        }
+
+        .totals {
+          width: 340px;
+          margin-left: auto;
+          margin-top: 18px;
+          border-collapse: separate;
+          border-spacing: 0;
+          border: 1px solid #d9d9d9;
+          border-radius: 10px;
+          overflow: hidden;
+          background: #fafafa;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .totals td {
+          padding: 10px 14px;
+          font-size: 14px;
+          border-bottom: 1px solid #e7e7e7;
+        }
+
+        .totals tr:last-child td {
+          border-bottom: none;
+        }
+
+        .totals tr.final td {
+          background: #f1f1f1;
+          font-size: 16px;
+        }
+
+        .totals tr.final strong {
+          font-size: 18px;
+        }
+
+        .notes {
+          margin-top: 18px;
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+
+        .notes h3 {
+          margin: 0 0 10px 0;
+          font-size: 16px;
+          color: #1f4e79;
+        }
+
+        .notes-list {
+          margin: 0;
+          padding-left: 18px;
+        }
+
+        .notes-list li {
+          margin-bottom: 6px;
+          line-height: 1.4;
+        }
+
+        @media print {
+          body {
+            padding: 0;
+          }
+
+          .sheet {
+            max-width: none;
+          }
+
+          .budget-lines-table tr,
+          .box,
+          .concept,
+          .totals,
+          .notes {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="sheet">
+        <div class="header">
+          <div class="company">
+            <div style="display:flex; align-items:flex-start; gap:14px;">
+              <img
+                src="logo-obrantis.png"
+                alt="Logo OBRANTIS"
+                style="width:90px; height:auto; object-fit:contain;"
+              />
+              <div>
+                <h1 style="margin:0 0 6px 0;">OBRANTIS S.L.</h1>
+                <p style="margin:2px 0;"><strong>Reformas y Construcción</strong></p>
+                <p style="margin:2px 0;"><strong>NIF:</strong> B26636761</p>
+                <p style="margin:2px 0;">Avda. Castilla-La Mancha, 22</p>
+                <p style="margin:2px 0;">45200 – Illescas – Toledo</p>
+                <p style="margin:2px 0;">Email: contacto@obrantis.com</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="meta">
+            <p><strong>PRESUPUESTO</strong></p>
+            <p><strong>Nº:</strong> ${escapeHtml(budget.budgetNumber || "-")}</p>
+            <p><strong>Fecha:</strong> ${escapeHtml(formatShortDate(budget.budgetDate))}</p>
+            <p><strong>Estado:</strong> ${escapeHtml(budget.status || "-")}</p>
+            <p><strong>Válido hasta:</strong> ${escapeHtml(formatShortDate(budget.validUntil) || "-")}</p>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="box">
+            <h3>Cliente</h3>
+            <p><strong>${escapeHtml(budget.clientName || "-")}</strong></p>
+            ${budget.clientTaxId ? `<p><strong>CIF:</strong> ${escapeHtml(budget.clientTaxId)}</p>` : ""}
+            ${budget.clientAddress ? `<p>${escapeHtml(budget.clientAddress)}</p>` : ""}
+            ${(budget.clientPostalCode || budget.clientCity || budget.clientProvince)
+              ? `<p>
+                  ${escapeHtml(budget.clientPostalCode || "")}
+                  ${escapeHtml(budget.clientCity || "")}
+                  ${budget.clientProvince ? " - " + escapeHtml(budget.clientProvince) : ""}
+                </p>`
+              : ""}
+          </div>
+
+          <div class="box">
+            <h3>Datos del presupuesto</h3>
+            <p><strong>Obra / Trabajo:</strong> ${escapeHtml(budget.projectName || "Sin obra asociada")}</p>
+            <p><strong>Referencia:</strong> ${escapeHtml(budget.reference || "-")}</p>
+            <p><strong>Plazo estimado:</strong> ${escapeHtml(budget.deliveryTime || "-")}</p>
+          </div>
+        </div>
+
+        <div class="concept">
+          <h3>Concepto general</h3>
+          <p>${escapeHtml(budget.concept || "-")}</p>
+        </div>
+
+        <table class="budget-lines-table">
+          <thead>
+            <tr>
+              <th>Descripción</th>
+              <th style="text-align:right;">Cant.</th>
+              <th style="text-align:right;">P. unit.</th>
+              <th style="text-align:right;">IVA</th>
+              <th style="text-align:right;">Base</th>
+              <th style="text-align:right;">Cuota</th>
+              <th style="text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml || `<tr><td colspan="7">Sin líneas</td></tr>`}
+          </tbody>
+        </table>
+
+        <table class="totals">
+          <tr>
+            <td><strong>Base imponible</strong></td>
+            <td style="text-align:right;">${formatCurrency(budget.baseTotal || 0)}</td>
+          </tr>
+          <tr>
+            <td><strong>IVA total</strong></td>
+            <td style="text-align:right;">${formatCurrency(budget.vatTotal || 0)}</td>
+          </tr>
+          <tr class="final">
+            <td><strong>Total presupuesto</strong></td>
+            <td style="text-align:right;">${formatCurrency(budget.totalAmount || 0)}</td>
+          </tr>
+        </table>
+
+        <div class="box notes">
+          <h3>Observaciones</h3>
+          ${notesHtml}
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+  }, 300);
+}
+
+
 function filterInvoices() {
   const search = (invoiceSearchInput.value || "").trim().toLowerCase();
 
@@ -3023,7 +3830,27 @@ function filterInvoices() {
 
   renderInvoicesTable(filtered);
 }
+function filterBudgets() {
+  const search = (budgetSearchInput?.value || "").trim().toLowerCase();
 
+  if (!search) {
+    renderBudgetsTable(budgets);
+    return;
+  }
+
+  const filtered = budgets.filter((budget) => {
+    const text = [
+      budget.budgetNumber,
+      budget.clientName,
+      budget.projectName,
+      budget.concept
+    ].join(" ").toLowerCase();
+
+    return text.includes(search);
+  });
+
+  renderBudgetsTable(filtered);
+}
 function editInvoice(id) {
   const invoice = invoices.find((item) => item.id === id);
   if (!invoice) return;
@@ -3051,7 +3878,124 @@ function editInvoice(id) {
 
   document.getElementById("view-invoices")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
+function editBudget(id) {
+  const budget = budgets.find((item) => item.id === id);
+  if (!budget) return;
 
+  editingBudgetId = budget.id;
+
+  if (budgetIdInput) budgetIdInput.value = budget.id;
+  if (budgetNumberInput) budgetNumberInput.value = budget.budgetNumber || "";
+  if (budgetDateInput) budgetDateInput.value = budget.budgetDate || "";
+
+  fillBudgetClientOptions(budget.clientId || "");
+  fillBudgetProjectOptions(budget.clientId || "", budget.projectId || "");
+
+  if (budgetConceptInput) budgetConceptInput.value = budget.concept || "";
+  if (budgetStatusInput) budgetStatusInput.value = budget.status || "Pendiente";
+  if (budgetValidUntilInput) budgetValidUntilInput.value = budget.validUntil || "";
+  if (budgetReferenceInput) budgetReferenceInput.value = budget.reference || "";
+  if (budgetDeliveryTimeInput) budgetDeliveryTimeInput.value = budget.deliveryTime || "";
+  if (budgetNotesInput) budgetNotesInput.value = budget.notes || "";
+  if (budgetInternalNotesInput) budgetInternalNotesInput.value = budget.internalNotes || "";
+
+  if (budgetLinesContainer) {
+    budgetLinesContainer.innerHTML = "";
+  }
+
+  (budget.lines || []).forEach((line) => addBudgetLine(line));
+  if (!budget.lines || !budget.lines.length) addBudgetLine();
+
+  if (btnSaveBudget) {
+    btnSaveBudget.textContent = "Actualizar presupuesto";
+  }
+
+  updateBudgetTotals();
+
+  document.getElementById("view-budgets")?.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+async function deleteBudget(id) {
+  const budget = budgets.find((item) => item.id === id);
+  if (!budget) return;
+
+  const ok = window.confirm(`¿Eliminar el presupuesto "${budget.budgetNumber}"?`);
+  if (!ok) return;
+
+  try {
+    await deleteBudgetFromFirestore(id);
+
+    if (editingBudgetId === id) {
+      resetBudgetForm();
+    }
+
+    await loadBudgetsFromFirestore();
+    filterBudgets();
+  } catch (error) {
+    console.error("Error eliminando presupuesto:", error);
+    alert("No se pudo eliminar el presupuesto en Firestore.");
+  }
+}
+async function convertBudgetToInvoice(id) {
+  const budget = budgets.find((item) => item.id === id);
+  if (!budget) {
+    alert("No se encontró el presupuesto.");
+    return;
+  }
+if (budget.status === "Convertido en factura") {
+  alert("Este presupuesto ya fue convertido en factura.");
+  return;
+}
+  const ok = window.confirm(
+    `¿Convertir el presupuesto "${budget.budgetNumber}" en factura?`
+  );
+
+  if (!ok) return;
+
+  try {
+    activateView("invoices");
+
+    resetInvoiceForm();
+
+    if (invoiceClientIdInput) invoiceClientIdInput.value = budget.clientId || "";
+    fillInvoiceProjectOptions(budget.clientId || "", budget.projectId || "");
+
+    if (invoiceProjectIdInput) invoiceProjectIdInput.value = budget.projectId || "";
+    if (invoiceConceptInput) invoiceConceptInput.value = budget.concept || "";
+
+    if (invoiceNotesInput) {
+      invoiceNotesInput.value = `Factura generada desde presupuesto ${budget.budgetNumber}`;
+    }
+
+    invoiceLinesContainer.innerHTML = "";
+
+    (budget.lines || []).forEach((line) => {
+      addInvoiceLine({
+        description: line.description,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+        vatRate: line.vatRate
+      });
+    });
+
+    updateInvoiceTotals();
+
+    const ref = doc(db, "budgets", id);
+    await updateDoc(ref, {
+      status: "Convertido en factura",
+      updatedAt: serverTimestamp()
+    });
+
+    await loadBudgetsFromFirestore();
+
+    alert("Presupuesto cargado en factura y marcado como convertido.");
+  } catch (error) {
+    console.error("Error convirtiendo presupuesto en factura:", error);
+    alert("No se pudo marcar el presupuesto como convertido.");
+  }
+}
 async function deleteInvoice(id) {
   const invoice = invoices.find((item) => item.id === id);
   if (!invoice) return;
@@ -3075,17 +4019,26 @@ async function deleteInvoice(id) {
 }
 window.editInvoice = editInvoice;
 window.deleteInvoice = deleteInvoice;
-
+window.editBudget = editBudget;
+window.deleteBudget = deleteBudget;
+window.convertBudgetToInvoice = convertBudgetToInvoice;
+window.printBudget = printBudget;
 if (btnAddInvoiceLine) {
   btnAddInvoiceLine.addEventListener("click", () => addInvoiceLine());
 }
-
+if (btnAddBudgetLine) {
+  btnAddBudgetLine.addEventListener("click", () => addBudgetLine());
+}
 if (invoiceClientIdInput) {
   invoiceClientIdInput.addEventListener("change", () => {
     fillInvoiceProjectOptions(invoiceClientIdInput.value, "");
   });
 }
-
+if (budgetClientIdInput) {
+  budgetClientIdInput.addEventListener("change", () => {
+    fillBudgetProjectOptions(budgetClientIdInput.value, "");
+  });
+}
 if (btnShowInvoiceForm) {
   btnShowInvoiceForm.addEventListener("click", () => {
    resetInvoiceForm();
@@ -3093,7 +4046,17 @@ if (btnShowInvoiceForm) {
     invoiceNumberInput?.focus();
   });
 }
+if (btnShowBudgetForm) {
+  btnShowBudgetForm.addEventListener("click", () => {
+    resetBudgetForm();
 
+    document
+      .getElementById("view-budgets")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    budgetNumberInput?.focus();
+  });
+}
 if (btnCancelInvoiceEdit) {
   btnCancelInvoiceEdit.addEventListener("click", () => {
     resetInvoiceForm();
@@ -3103,7 +4066,15 @@ if (btnCancelInvoiceEdit) {
 if (invoiceSearchInput) {
   invoiceSearchInput.addEventListener("input", filterInvoices);
 }
+if (btnCancelBudgetEdit) {
+  btnCancelBudgetEdit.addEventListener("click", () => {
+    resetBudgetForm();
+  });
+}
 
+if (budgetSearchInput) {
+  budgetSearchInput.addEventListener("input", filterBudgets);
+}
 if (invoiceForm) {
  invoiceForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
@@ -3155,7 +4126,64 @@ if (invoiceForm) {
   }
 });
 }
+if (budgetForm) {
+  budgetForm.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
 
+    const data = getBudgetFormData();
+
+    if (!data.budgetNumber) {
+      alert("Debes indicar el número de presupuesto.");
+      return;
+    }
+
+    if (!isValidBudgetNumberFormat(data.budgetNumber)) {
+      alert("El número debe tener formato PRES-2026-001");
+      return;
+    }
+
+    if (!data.budgetDate) {
+      alert("Debes indicar la fecha.");
+      return;
+    }
+
+    if (!data.clientId) {
+      alert("Debes seleccionar un cliente.");
+      return;
+    }
+
+    if (!data.lines.length) {
+      alert("Debes añadir al menos una línea.");
+      return;
+    }
+
+    const duplicated = budgets.find((item) => {
+      return (
+        String(item.budgetNumber || "").trim() ===
+          String(data.budgetNumber || "").trim() &&
+        item.id !== data.id
+      );
+    });
+
+    if (duplicated) {
+      alert("Ese número de presupuesto ya existe.");
+      return;
+    }
+
+    try {
+      await saveBudgetToFirestore(data);
+      await loadBudgetsFromFirestore();
+
+      resetBudgetForm();
+      filterBudgets();
+
+      alert("Presupuesto guardado correctamente.");
+    } catch (error) {
+      console.error("Error guardando presupuesto:", error);
+      alert("No se pudo guardar el presupuesto en Firestore.");
+    }
+  });
+}
 const originalResetProjectForm = resetProjectForm;
 resetProjectForm = function () {
   originalResetProjectForm();
@@ -3165,14 +4193,20 @@ resetProjectForm = function () {
 const originalRenderProjectsTable = renderProjectsTable;
 renderProjectsTable = function (items = projects) {
   originalRenderProjectsTable(items);
+
   fillInvoiceProjectOptions(invoiceClientIdInput?.value || "", invoiceProjectIdInput?.value || "");
+  fillBudgetProjectOptions(budgetClientIdInput?.value || "", budgetProjectIdInput?.value || "");
 };
 
 const previousRenderClientsTable = renderClientsTable;
 renderClientsTable = function (items = clients) {
   previousRenderClientsTable(items);
+
   fillInvoiceClientOptions(invoiceClientIdInput?.value || "");
   fillInvoiceProjectOptions(invoiceClientIdInput?.value || "", invoiceProjectIdInput?.value || "");
+
+  fillBudgetClientOptions(budgetClientIdInput?.value || "");
+  fillBudgetProjectOptions(budgetClientIdInput?.value || "", budgetProjectIdInput?.value || "");
 };
 
 loadAllFromStorage();
@@ -3182,8 +4216,12 @@ fillProjectClientOptions();
 renderProjectsTable();
 fillInvoiceClientOptions();
 fillInvoiceProjectOptions();
+fillBudgetClientOptions();
+fillBudgetProjectOptions();
 resetInvoiceForm();
 renderInvoicesTable();
+resetBudgetForm();
+renderBudgetsTable();
 if (loginForm) {
   loginForm.addEventListener("submit", async (ev) => {
     ev.preventDefault();
@@ -3228,14 +4266,17 @@ onAuthStateChanged(auth, async (user) => {
     await loadClientsFromFirestore();
     await loadProjectsFromFirestore();
     await loadInvoicesFromFirestore();
+    await loadBudgetsFromFirestore();
   } else {
     showAuthScreen();
     clients = [];
     projects = [];
     invoices = [];
+    budgets = [];
     renderClientsTable();
     renderProjectsTable();
     renderInvoicesTable();
+    renderBudgetsTable();
   }
 });
 if (btnLogout) {

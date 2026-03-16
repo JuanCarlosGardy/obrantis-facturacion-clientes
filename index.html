@@ -42,6 +42,7 @@
         <button class="menu-btn" data-view="clients">Clientes</button>
         <button class="menu-btn" data-view="projects">Obras</button>
         <button class="menu-btn" data-view="invoices">Facturas</button>
+        <button class="menu-btn" data-view="budgets">Presupuestos</button>
         <button class="menu-btn" data-view="reports">Informes</button>
         <button class="menu-btn" data-view="settings">Configuración</button>
       </nav>
@@ -84,6 +85,7 @@
       <button type="button" class="quick-action-btn" id="btnQuickNewClient">Nuevo cliente</button>
       <button type="button" class="quick-action-btn" id="btnQuickNewProject">Nueva obra</button>
       <button type="button" class="quick-action-btn" id="btnQuickNewInvoice">Nueva factura</button>
+      <button type="button" class="action-btn" id="btnQuickNewBudget">Nuevo presupuesto</button>
       <button type="button" class="quick-action-btn" id="btnQuickReports">Ver informes</button>
     </div>
   </div>    
@@ -481,7 +483,160 @@
           </div>
         </div>
       </section>
+<section id="view-budgets" class="view">
+  <div class="section-header">
+    <h3>Presupuestos</h3>
+    <button type="button" class="primary-btn" id="btnShowBudgetForm">+ Nuevo presupuesto</button>
+  </div>
 
+  <div class="card">
+    <div class="toolbar">
+      <input
+        type="text"
+        id="budgetSearch"
+        class="search-input"
+        placeholder="Buscar por número, cliente, obra o concepto"
+      />
+    </div>
+  </div>
+
+  <div class="card" id="budgetFormCard">
+    <h4 class="block-title">Ficha de presupuesto</h4>
+
+    <form id="budgetForm" class="form-grid">
+      <input type="hidden" id="budgetId" />
+
+      <div class="field">
+        <label for="budgetNumber">Número de presupuesto</label>
+        <input type="text" id="budgetNumber" required />
+      </div>
+
+      <div class="field">
+        <label for="budgetDate">Fecha de presupuesto</label>
+        <input type="date" id="budgetDate" required />
+      </div>
+
+      <div class="field">
+        <label for="budgetClientId">Cliente</label>
+        <select id="budgetClientId" required>
+          <option value="">Selecciona un cliente</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="budgetProjectId">Obra / trabajo (opcional)</label>
+        <select id="budgetProjectId">
+          <option value="">Sin obra asociada</option>
+        </select>
+      </div>
+
+      <div class="field field-full">
+        <label for="budgetConcept">Concepto general</label>
+        <input type="text" id="budgetConcept" />
+      </div>
+<div>
+  <label for="budgetStatusInput">Estado</label>
+  <select id="budgetStatusInput">
+    <option value="Pendiente">Pendiente</option>
+    <option value="Aceptado">Aceptado</option>
+    <option value="Rechazado">Rechazado</option>
+    <option value="Convertido en factura">Convertido en factura</option>
+  </select>
+</div>
+      <div class="field field-full">
+        <label>Líneas de presupuesto</label>
+        <div id="budgetLinesContainer" class="invoice-lines"></div>
+        <button type="button" class="action-btn" id="btnAddBudgetLine">+ Añadir línea</button>
+      </div>
+
+      <div class="field">
+        <label for="budgetStatus">Estado</label>
+        <select id="budgetStatus">
+          <option value="Pendiente">Pendiente</option>
+          <option value="Enviado">Enviado</option>
+          <option value="Aceptado">Aceptado</option>
+          <option value="Rechazado">Rechazado</option>
+          <option value="Convertido en factura">Convertido en factura</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="budgetValidUntil">Válido hasta</label>
+        <input type="date" id="budgetValidUntil" />
+      </div>
+
+      <div class="field">
+        <label for="budgetReference">Referencia</label>
+        <input type="text" id="budgetReference" />
+      </div>
+
+      <div class="field">
+        <label for="budgetDeliveryTime">Plazo estimado</label>
+        <input type="text" id="budgetDeliveryTime" />
+      </div>
+
+      <div class="field field-full">
+        <label for="budgetNotes">Observaciones</label>
+        <textarea id="budgetNotes" rows="4"></textarea>
+      </div>
+
+      <div class="field field-full">
+        <label for="budgetInternalNotes">Observaciones internas</label>
+        <textarea id="budgetInternalNotes" rows="3"></textarea>
+      </div>
+
+      <div class="field field-full">
+        <div class="totals-box">
+          <div class="total-row">
+            <span>Base imponible</span>
+            <strong id="budgetBaseTotal">0,00 €</strong>
+          </div>
+          <div class="total-row">
+            <span>IVA total</span>
+            <strong id="budgetVatTotal">0,00 €</strong>
+          </div>
+          <div class="total-row grand-total">
+            <span>Total presupuesto</span>
+            <strong id="budgetGrandTotal">0,00 €</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions field-full">
+        <button type="submit" class="primary-btn" id="btnSaveBudget">Guardar presupuesto</button>
+        <button type="button" class="action-btn" id="btnCancelBudgetEdit">Cancelar</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h4 class="block-title">Listado de presupuestos</h4>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Número</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Obra</th>
+            <th>Concepto</th>
+            <th>Base</th>
+            <th>IVA</th>
+            <th>Total</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="budgetsTableBody">
+          <tr>
+            <td colspan="10" class="empty-cell">No hay presupuestos todavía.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
       <section id="view-reports" class="view">
         <div class="section-header">
           <h3>Informes</h3>

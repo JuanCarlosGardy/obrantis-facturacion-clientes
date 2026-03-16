@@ -577,3 +577,31 @@ textarea {
 .quick-action-btn:hover {
   background: #f7f7f7;
 }
+.btn-small:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+/* ===== Estados de presupuesto ===== */
+
+.status-badge{
+  padding:4px 10px;
+  border-radius:6px;
+  font-size:12px;
+  font-weight:600;
+  display:inline-block;
+}
+
+.status-pendiente{
+  background:#FFF3CD;
+  color:#856404;
+}
+
+.status-convertido{
+  background:#D4EDDA;
+  color:#155724;
+}
+
+.status-default{
+  background:#E2E3E5;
+  color:#383D41;
+}
