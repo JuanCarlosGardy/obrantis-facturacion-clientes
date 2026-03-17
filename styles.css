@@ -605,3 +605,43 @@ textarea {
   background:#E2E3E5;
   color:#383D41;
 }
+.budgets-filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 16px;
+  flex-wrap: wrap;
+}
+
+.budgets-filters-bar select {
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+}
+.dashboard-health-card {
+  margin-top: 18px;
+}
+
+.dashboard-health {
+  padding: 14px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.health-good {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.health-warning {
+  background: #fff8e1;
+  color: #b06000;
+}
+
+.health-danger {
+  background: #fdecea;
+  color: #a50e0e;
+}

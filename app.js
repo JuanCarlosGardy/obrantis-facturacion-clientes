@@ -5,6 +5,7 @@ import {
   addDoc,
   doc,
   deleteDoc,
+  getDoc,
   getDocs,
   onSnapshot,
   serverTimestamp,
@@ -136,12 +137,14 @@ async function saveBudgetToFirestore(data) {
 async function loadBudgetsFromFirestore() {
   try {
     budgets = await fetchBudgetsFromFirestore();
-    renderBudgetsTable();
+    applyBudgetStatusFilter();
+    renderDashboardStats();
     refreshNextBudgetNumber();
   } catch (error) {
     console.error("Error cargando listado de presupuestos:", error);
     budgets = [];
-    renderBudgetsTable();
+    applyBudgetStatusFilter();
+    renderDashboardStats();
     refreshNextBudgetNumber();
   }
 }
@@ -156,6 +159,39 @@ async function deleteInvoiceFromFirestore(invoiceId) {
 async function deleteBudgetFromFirestore(id) {
   const ref = doc(db, "budgets", id);
   await deleteDoc(ref);
+}
+async function saveSettingsToFirestore(data) {
+  try {
+    await setDoc(doc(db, "settings", "company"), data);
+  } catch (error) {
+    console.error("Error guardando configuración:", error);
+    alert("Error al guardar configuración");
+  }
+}
+async function loadSettingsFromFirestore() {
+  try {
+    const docRef = doc(db, "settings", "company");
+    const snap = await getDoc(docRef);
+
+    if (!snap.exists()) return;
+
+    const data = snap.data();
+companySettings = {
+  name: data.name || "",
+  nif: data.nif || "",
+  email: data.email || "",
+  address: data.address || "",
+  iban: data.iban || ""
+};
+    if (settingCompanyName) settingCompanyName.value = data.name || "";
+    if (settingCompanyNif) settingCompanyNif.value = data.nif || "";
+    if (settingCompanyEmail) settingCompanyEmail.value = data.email || "";
+    if (settingCompanyAddress) settingCompanyAddress.value = data.address || "";
+    if (settingCompanyIban) settingCompanyIban.value = data.iban || "";
+
+  } catch (error) {
+    console.error("Error cargando configuración:", error);
+  }
 }
 async function loadInvoicesFromFirestore() {
   try {
@@ -175,7 +211,12 @@ const menuButtons = document.querySelectorAll(".menu-btn");
 const views = document.querySelectorAll(".view");
 const viewTitle = document.getElementById("viewTitle");
 const viewSubtitle = document.getElementById("viewSubtitle");
-
+const settingsForm = document.getElementById("settingsForm");
+const settingCompanyName = document.getElementById("settingCompanyName");
+const settingCompanyNif = document.getElementById("settingCompanyNif");
+const settingCompanyEmail = document.getElementById("settingCompanyEmail");
+const settingCompanyAddress = document.getElementById("settingCompanyAddress");
+const settingCompanyIban = document.getElementById("settingCompanyIban");
 const viewConfig = {
   dashboard: {
     title: "Dashboard",
@@ -218,7 +259,13 @@ const OBRANTIS_COMPANY = {
 const OBRANTIS_BANK = {
   iban: "ES6500490456942910764001"
 };
-
+let companySettings = {
+  name: OBRANTIS_COMPANY.name || "",
+  nif: OBRANTIS_COMPANY.nif || "",
+  email: OBRANTIS_COMPANY.email || "",
+  address: `${OBRANTIS_COMPANY.address1 || ""} ${OBRANTIS_COMPANY.address2 || ""}`.trim(),
+  iban: OBRANTIS_BANK.iban || ""
+};
 const OBRANTIS_LOGO_URL = "./logo-obrantis.png";
 
 let obrantisLogoDataUrl = null;
@@ -237,7 +284,15 @@ function formatDashboardCurrency(value) {
     currency: "EUR"
   }).format(Number(value || 0));
 }
-
+function getCompanySettings() {
+  return {
+    name: companySettings.name || OBRANTIS_COMPANY.name || "",
+    nif: companySettings.nif || OBRANTIS_COMPANY.nif || "",
+    email: companySettings.email || OBRANTIS_COMPANY.email || "",
+    address: companySettings.address || `${OBRANTIS_COMPANY.address1 || ""} ${OBRANTIS_COMPANY.address2 || ""}`.trim(),
+    iban: companySettings.iban || OBRANTIS_BANK.iban || ""
+  };
+}
 function getInvoiceDateValue(invoice) {
   if (!invoice?.invoiceDate) return null;
 
@@ -276,6 +331,8 @@ function isInvoicePaidForDashboard(invoice) {
 
 function calculateDashboardStats() {
   const sourceInvoices = Array.isArray(invoices) ? invoices : [];
+  const sourceBudgets = Array.isArray(budgets) ? budgets : [];
+  const sourceClients = Array.isArray(clients) ? clients : [];
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -294,12 +351,21 @@ function calculateDashboardStats() {
   let collectedMonth = 0;
   let pendingTotal = 0;
   let overdueCount = 0;
+  let billedTotal = 0;
+  let pendingInvoicesCount = 0;
 
   for (const invoice of sourceInvoices) {
+    const paymentStatus = String(invoice.paymentStatus || "Pendiente").trim();
+
+if (paymentStatus === "Pendiente") {
+  pendingInvoicesCount += 1;
+}
     const invoiceDate = getInvoiceDateValue(invoice);
     const dueDate = getInvoiceDueDateValue(invoice);
     const totalAmount = Number(invoice.totalAmount || 0);
     const paid = isInvoicePaidForDashboard(invoice);
+
+    billedTotal += totalAmount;
 
     if (invoiceDate && invoiceDate >= monthStart && invoiceDate <= monthEnd) {
       billedMonth += totalAmount;
@@ -318,14 +384,118 @@ function calculateDashboardStats() {
     }
   }
 
+  let budgetsPending = 0;
+  let budgetsAccepted = 0;
+  let budgetsConverted = 0;
+
+  for (const budget of sourceBudgets) {
+    const status = String(budget.status || "").trim().toLowerCase();
+
+    if (!status || status === "pendiente") {
+      budgetsPending += 1;
+    } else if (status === "aceptado") {
+      budgetsAccepted += 1;
+    } else if (status === "convertido en factura") {
+      budgetsConverted += 1;
+    }
+  }
+
+  const clientsActive = sourceClients.filter((client) => client && client.isActive !== false).length;
+
   return {
     billedMonth,
     collectedMonth,
     pendingTotal,
-    overdueCount
+    overdueCount,
+    pendingInvoicesCount,
+    budgetsPending,
+    budgetsAccepted,
+    budgetsConverted,
+    billedTotal,
+    clientsActive
   };
 }
+function renderDashboardAlerts(stats) {
+  const alertsContainer = document.getElementById("dashboardAlerts");
+  if (!alertsContainer) return;
 
+  const alerts = [];
+
+  if (stats.pendingInvoicesCount > 0) {
+    alerts.push({
+      type: "warning",
+      text: `Tienes ${stats.pendingInvoicesCount} factura(s) pendiente(s) de cobro.`
+    });
+  }
+
+  if (stats.overdueCount > 0) {
+    alerts.push({
+      type: "danger",
+      text: `Tienes ${stats.overdueCount} factura(s) vencida(s) que requieren seguimiento inmediato.`
+    });
+  }
+
+  if (stats.pendingTotal > 3000) {
+    alerts.push({
+      type: "warning",
+      text: `El pendiente de cobro asciende a ${formatDashboardCurrency(stats.pendingTotal)}. Conviene revisar el estado de cobros.`
+    });
+  }
+
+  if (stats.budgetsPending > 0) {
+    alerts.push({
+      type: "info",
+      text: `Hay ${stats.budgetsPending} presupuesto(s) en estado pendiente. Conviene revisar seguimiento comercial.`
+    });
+  }
+
+  if (stats.clientsActive === 0) {
+    alerts.push({
+      type: "warning",
+      text: "No hay clientes activos registrados en este momento."
+    });
+  }
+
+  if (!alerts.length) {
+    alertsContainer.innerHTML = `<p class="muted-text">Sin alertas por ahora.</p>`;
+    return;
+  }
+
+  alertsContainer.innerHTML = `
+    <div class="dashboard-alerts-list">
+      ${alerts
+        .map(
+          (alert) => `
+            <div class="dashboard-alert alert-${alert.type}">
+              ${escapeHtml(alert.text)}
+            </div>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+function renderDashboardHealth(stats) {
+  const container = document.getElementById("dashboardHealth");
+  if (!container) return;
+
+  let status = "good";
+  let message = "Situación saludable. El negocio está bajo control.";
+
+  if (stats.overdueCount > 0) {
+    status = "danger";
+    message = "Situación crítica: hay facturas vencidas. Requiere acción inmediata.";
+  } else if (stats.pendingTotal > 3000 || stats.budgetsPending > 5) {
+    status = "warning";
+    message = "Atención: revisar cobros y seguimiento de presupuestos.";
+  }
+
+  container.innerHTML = `
+    <div class="dashboard-health health-${status}">
+      ${escapeHtml(message)}
+    </div>
+  `;
+}
 function renderDashboardStats() {
   const stats = calculateDashboardStats();
 
@@ -342,8 +512,38 @@ function renderDashboardStats() {
   }
 
   if (dashOverdueCount) {
-    dashOverdueCount.textContent = String(stats.overdueCount);
+  dashOverdueCount.textContent = String(stats.overdueCount);
+
+  if (stats.overdueCount > 0) {
+    dashOverdueCount.style.color = "#d93025";
+    dashOverdueCount.style.fontWeight = "700";
+  } else {
+    dashOverdueCount.style.color = "";
+    dashOverdueCount.style.fontWeight = "";
   }
+}
+
+  if (dashBudgetsPending) {
+    dashBudgetsPending.textContent = String(stats.budgetsPending);
+  }
+
+  if (dashBudgetsAccepted) {
+    dashBudgetsAccepted.textContent = String(stats.budgetsAccepted);
+  }
+
+  if (dashBudgetsConverted) {
+    dashBudgetsConverted.textContent = String(stats.budgetsConverted);
+  }
+
+  if (dashBilledTotal) {
+    dashBilledTotal.textContent = formatDashboardCurrency(stats.billedTotal);
+  }
+
+  if (dashClientsActive) {
+    dashClientsActive.textContent = String(stats.clientsActive);
+  }
+  renderDashboardAlerts(stats);
+  renderDashboardHealth(stats);
 }
 function activateView(targetView) {
   menuButtons.forEach((btn) => {
@@ -362,11 +562,34 @@ function activateView(targetView) {
     viewSubtitle.textContent = viewConfig[targetView].subtitle;
   }
 }
+if (settingsForm) {
+  settingsForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
+    const data = {
+      name: settingCompanyName.value.trim(),
+      nif: settingCompanyNif.value.trim(),
+      email: settingCompanyEmail.value.trim(),
+      address: settingCompanyAddress.value.trim(),
+      iban: settingCompanyIban.value.trim()
+    };
+companySettings = { ...data };
+    await saveSettingsToFirestore(data);
+
+    alert("Configuración guardada correctamente");
+  });
+}
 menuButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const targetView = button.dataset.view;
+
+    // Activar vista
     activateView(targetView);
+
+    // 👇 AÑADIMOS ESTO
+    if (targetView === "budgets") {
+      applyBudgetStatusFilter();
+    }
   });
 });
 
@@ -408,11 +631,16 @@ const dashBilledMonth = document.getElementById("dashBilledMonth");
 const dashCollectedMonth = document.getElementById("dashCollectedMonth");
 const dashPendingTotal = document.getElementById("dashPendingTotal");
 const dashOverdueCount = document.getElementById("dashOverdueCount");
-
+const dashBudgetsPending = document.getElementById("dashBudgetsPending");
+const dashBudgetsAccepted = document.getElementById("dashBudgetsAccepted");
+const dashBudgetsConverted = document.getElementById("dashBudgetsConverted");
+const dashBilledTotal = document.getElementById("dashBilledTotal");
+const dashClientsActive = document.getElementById("dashClientsActive");
 const btnQuickNewClient = document.getElementById("btnQuickNewClient");
 const btnQuickNewProject = document.getElementById("btnQuickNewProject");
 const btnQuickNewInvoice = document.getElementById("btnQuickNewInvoice");
 const btnQuickReports = document.getElementById("btnQuickReports");
+
 if (btnQuickNewClient) {
   btnQuickNewClient.addEventListener("click", () => activateView("clients"));
 }
@@ -1837,6 +2065,7 @@ async function loadClientsFromFirestore() {
     });
 
     renderClientsTable();
+    renderDashboardStats();
     fillProjectClientOptions();
     fillInvoiceClientOptions(invoiceClientIdInput?.value || "");
     fillInvoiceProjectOptions(invoiceClientIdInput?.value || "", invoiceProjectIdInput?.value || "");
@@ -2809,17 +3038,40 @@ function getBudgetFormData() {
     internalNotes: budgetInternalNotesInput.value.trim()
     };
 }
+function applyBudgetStatusFilter() {
+  const filterElement = document.getElementById("budgetStatusFilter");
+  const selectedStatus = filterElement ? filterElement.value : "all";
+
+  let filteredBudgets = [...budgets];
+
+  if (selectedStatus !== "all") {
+    filteredBudgets = filteredBudgets.filter((budget) => {
+      const currentStatus = String(budget.status || "Pendiente").trim();
+      return currentStatus === selectedStatus;
+    });
+  }
+
+  renderBudgetsTable(filteredBudgets);
+}
 function renderBudgetsTable(items = budgets) {
   if (!budgetsTableBody) return;
 
   if (!items.length) {
-    budgetsTableBody.innerHTML = `
-      <tr>
-        <td colspan="10" class="empty-cell">No hay presupuestos todavía.</td>
-      </tr>
-    `;
-    return;
-  }
+  const filterElement = document.getElementById("budgetStatusFilter");
+  const selectedStatus = filterElement ? filterElement.value : "all";
+
+  const emptyMessage =
+    selectedStatus === "all"
+      ? "No hay presupuestos todavía."
+      : "No hay presupuestos para el estado seleccionado.";
+
+  budgetsTableBody.innerHTML = `
+    <tr>
+      <td colspan="11" class="empty-cell">${emptyMessage}</td>
+    </tr>
+  `;
+  return;
+}
 
   budgetsTableBody.innerHTML = items
     .map(
@@ -2905,7 +3157,22 @@ function getInvoiceFormData() {
     internalNotes: invoiceInternalNotesInput.value.trim()
   };
 }
+function applyInvoiceStatusFilter() {
+  const filterElement = document.getElementById("invoiceStatusFilter");
+  const selectedStatus = filterElement ? filterElement.value : "all";
 
+  let filteredInvoices = [...invoices];
+
+  if (selectedStatus !== "all") {
+    filteredInvoices = filteredInvoices.filter((invoice) => {
+      const currentStatus = String(invoice.paymentStatus || "Pendiente").trim().toLowerCase();
+      const expectedStatus = String(selectedStatus).trim().toLowerCase();
+      return currentStatus === expectedStatus;
+    });
+  }
+
+  renderInvoicesTable(filteredInvoices);
+}
 function renderInvoicesTable(items = invoices) {
   if (!invoicesTableBody) return;
 
@@ -4039,6 +4306,31 @@ if (budgetClientIdInput) {
     fillBudgetProjectOptions(budgetClientIdInput.value, "");
   });
 }
+function setupBudgetStatusFilter() {
+  const budgetStatusFilter = document.getElementById("budgetStatusFilter");
+
+  if (!budgetStatusFilter) {
+    console.warn("No se encontró el filtro de presupuestos: #budgetStatusFilter");
+    return;
+  }
+
+  budgetStatusFilter.addEventListener("change", () => {
+    console.log("Filtro de presupuestos cambiado a:", budgetStatusFilter.value);
+    applyBudgetStatusFilter();
+  });
+}
+function setupInvoiceStatusFilter() {
+  const filter = document.getElementById("invoiceStatusFilter");
+
+  if (!filter) {
+    console.warn("No se encontró el filtro de facturas: #invoiceStatusFilter");
+    return;
+  }
+
+  filter.addEventListener("change", () => {
+    applyInvoiceStatusFilter();
+  });
+}
 if (btnShowInvoiceForm) {
   btnShowInvoiceForm.addEventListener("click", () => {
    resetInvoiceForm();
@@ -4263,10 +4555,13 @@ onAuthStateChanged(auth, async (user) => {
 
   if (user) {
     showAppScreen();
+    setupBudgetStatusFilter();
+    setupInvoiceStatusFilter();
     await loadClientsFromFirestore();
     await loadProjectsFromFirestore();
     await loadInvoicesFromFirestore();
     await loadBudgetsFromFirestore();
+    loadSettingsFromFirestore();
   } else {
     showAuthScreen();
     clients = [];

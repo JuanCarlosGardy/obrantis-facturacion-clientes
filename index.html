@@ -58,27 +58,63 @@
 
     <section id="view-dashboard" class="view active">
   <div class="cards-grid">
-    <article class="card stat-card">
-      <h3>Facturado este mes</h3>
-      <p class="stat-value" id="dashBilledMonth">0,00 €</p>
-    </article>
+  <article class="card stat-card">
+    <h3>Facturado este mes</h3>
+    <p class="stat-value" id="dashBilledMonth">0,00 €</p>
+  </article>
 
-    <article class="card stat-card">
-      <h3>Cobrado este mes</h3>
-      <p class="stat-value" id="dashCollectedMonth">0,00 €</p>
-    </article>
+  <article class="card stat-card">
+    <h3>Cobrado este mes</h3>
+    <p class="stat-value" id="dashCollectedMonth">0,00 €</p>
+  </article>
 
-    <article class="card stat-card">
-      <h3>Pendiente de cobro</h3>
-      <p class="stat-value" id="dashPendingTotal">0,00 €</p>
-    </article>
+  <article class="card stat-card">
+    <h3>Pendiente de cobro</h3>
+    <p class="stat-value" id="dashPendingTotal">0,00 €</p>
+  </article>
 
-    <article class="card stat-card">
-      <h3>Facturas vencidas</h3>
-      <p class="stat-value" id="dashOverdueCount">0</p>
-    </article>
+  <article class="card stat-card">
+    <h3>Facturas vencidas</h3>
+    <p class="stat-value" id="dashOverdueCount">0</p>
+  </article>
+
+  <article class="card stat-card">
+    <h3>Presupuestos pendientes</h3>
+    <p class="stat-value" id="dashBudgetsPending">0</p>
+  </article>
+
+  <article class="card stat-card">
+    <h3>Presupuestos aceptados</h3>
+    <p class="stat-value" id="dashBudgetsAccepted">0</p>
+  </article>
+
+  <article class="card stat-card">
+    <h3>Presupuestos facturados</h3>
+    <p class="stat-value" id="dashBudgetsConverted">0</p>
+  </article>
+
+  <article class="card stat-card">
+    <h3>Facturación total</h3>
+    <p class="stat-value" id="dashBilledTotal">0,00 €</p>
+  </article>
+
+  <article class="card stat-card">
+    <h3>Clientes activos</h3>
+    <p class="stat-value" id="dashClientsActive">0</p>
+  </article>
+</div>
+<div class="card dashboard-alerts-card">
+  <h3>Alertas automáticas</h3>
+  <div id="dashboardAlerts">
+    <p class="muted-text">Sin alertas por ahora.</p>
   </div>
-
+</div>
+<div class="card dashboard-health-card">
+  <h3>Estado general del negocio</h3>
+  <div id="dashboardHealth">
+    <p class="muted-text">Calculando estado...</p>
+  </div>
+</div>
   <div class="card quick-actions-card">
     <h3>Accesos rápidos</h3>
     <div class="quick-actions-grid">
@@ -347,7 +383,18 @@
             />
           </div>
         </div>
-
+<div class="card">
+  <div class="budgets-filters-bar">
+    <label for="invoiceStatusFilter"><strong>Filtrar por estado de cobro:</strong></label>
+    <select id="invoiceStatusFilter">
+      <option value="all">Todas</option>
+      <option value="Pendiente">Pendiente</option>
+      <option value="Parcialmente cobrada">Parcialmente cobrada</option>
+      <option value="Cobrada">Cobrada</option>
+      <option value="Anulada">Anulada</option>
+    </select>
+  </div>
+</div>
         <div class="card" id="invoiceFormCard">
           <h4 class="block-title">Ficha de factura emitida</h4>
 
@@ -499,7 +546,18 @@
       />
     </div>
   </div>
-
+<div class="card">
+  <div class="budgets-filters-bar">
+    <label for="budgetStatusFilter"><strong>Filtrar por estado:</strong></label>
+    <select id="budgetStatusFilter">
+      <option value="all">Todos</option>
+      <option value="Pendiente">Pendiente</option>
+      <option value="Aceptado">Aceptado</option>
+      <option value="Rechazado">Rechazado</option>
+      <option value="Convertido en factura">Convertido en factura</option>
+    </select>
+  </div>
+</div>
   <div class="card" id="budgetFormCard">
     <h4 class="block-title">Ficha de presupuesto</h4>
 
@@ -787,8 +845,42 @@
         </div>
 
         <div class="card">
-          <p>Aquí irán los datos generales de empresa, ajustes de numeración y opciones de impresión.</p>
-        </div>
+  <h3>Datos de la empresa</h3>
+
+  <form id="settingsForm" class="form-grid">
+
+    <div class="field">
+      <label>Nombre empresa</label>
+      <input type="text" id="settingCompanyName" />
+    </div>
+
+    <div class="field">
+      <label>CIF</label>
+      <input type="text" id="settingCompanyNif" />
+    </div>
+
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="settingCompanyEmail" />
+    </div>
+
+    <div class="field field-full">
+      <label>Dirección</label>
+      <input type="text" id="settingCompanyAddress" />
+    </div>
+
+    <div class="field">
+      <label>IBAN</label>
+      <input type="text" id="settingCompanyIban" />
+    </div>
+
+    <div class="field field-full">
+      <button type="submit" class="primary-btn">Guardar configuración</button>
+    </div>
+
+  </form>
+</div>
+       
       </section>
     </main>
   </div>
