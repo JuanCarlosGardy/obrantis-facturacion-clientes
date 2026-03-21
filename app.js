@@ -3693,16 +3693,16 @@ function printBudget(id) {
   }
 
   const linesHtml = (budget.lines || []).map((line) => `
-    <tr>
-      <td class="line-description-cell">${escapeHtml(line.description || "-")}</td>
-      <td>${Number(line.quantity || 0).toLocaleString("es-ES")}</td>
-      <td>${formatCurrency(line.unitPrice || 0)}</td>
-      <td>${Number(line.vatRate || 0)}%</td>
-      <td>${formatCurrency(line.baseAmount || 0)}</td>
-      <td>${formatCurrency(line.vatAmount || 0)}</td>
-      <td>${formatCurrency(line.lineTotal || 0)}</td>
-    </tr>
-  `).join("");
+  <tr>
+    <td class="line-description-cell">${escapeHtml(line.description || "-").replace(/\n/g, "<br>")}</td>
+    <td>${Number(line.quantity || 0).toLocaleString("es-ES")}</td>
+    <td>${formatCurrency(line.unitPrice || 0)}</td>
+    <td>${Number(line.vatRate || 0)}%</td>
+    <td>${formatCurrency(line.baseAmount || 0)}</td>
+    <td>${formatCurrency(line.vatAmount || 0)}</td>
+    <td>${formatCurrency(line.lineTotal || 0)}</td>
+  </tr>
+`).join("");
 
   const notesLines = (budget.notes || "")
     .split("\n")
@@ -3885,11 +3885,18 @@ function printBudget(id) {
         }
 
         .line-description-cell {
-          white-space: normal;
-          word-break: break-word;
-          overflow-wrap: break-word;
-          line-height: 1.35;
-        }
+  white-space: pre-line;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.35;
+}
+
+.multiline-text {
+  white-space: pre-line;
+  line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 
         .totals {
           width: 340px;
@@ -4020,9 +4027,9 @@ function printBudget(id) {
         </div>
 
         <div class="concept">
-          <h3>Concepto general</h3>
-          <p>${escapeHtml(budget.concept || "-")}</p>
-        </div>
+  <h3>Concepto general</h3>
+  <p class="multiline-text">${escapeHtml(budget.concept || "-").replace(/\n/g, "<br>")}</p>
+</div>
 
         <table class="budget-lines-table">
           <thead>
