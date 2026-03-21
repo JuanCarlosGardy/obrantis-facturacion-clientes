@@ -2713,7 +2713,7 @@ function addInvoiceLine(data = {}) {
   line.innerHTML = `
     <div class="field">
       <label>Descripción</label>
-      <textarea class="line-description" rows="2" ...></textarea>
+      <input type="text" class="line-description" value="${escapeHtml(data.description || "")}" />
     </div>
 
     <div class="field">
