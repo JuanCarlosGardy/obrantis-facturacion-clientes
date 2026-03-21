@@ -2764,10 +2764,10 @@ function addBudgetLine(data = {}) {
   line.dataset.lineId = String(budgetLineCounter);
 
   line.innerHTML = `
-    <div class="field">
-      <label>Descripción</label>
-      <input type="text" class="line-description" value="${escapeHtml(data.description || "")}" />
-    </div>
+    <div class="field field-full">
+  <label>Descripción</label>
+  <textarea class="line-description" rows="4" placeholder="Describe la partida...">${escapeHtml(data.description || "")}</textarea>
+</div>
 
     <div class="field">
       <label>Cantidad</label>
@@ -2794,10 +2794,10 @@ function addBudgetLine(data = {}) {
 
   budgetLinesContainer.appendChild(line);
 
-  line.querySelectorAll("input, select").forEach((el) => {
-    el.addEventListener("input", updateBudgetTotals);
-    el.addEventListener("change", updateBudgetTotals);
-  });
+  line.querySelectorAll("input, select, textarea").forEach((el) => {
+  el.addEventListener("input", updateBudgetTotals);
+  el.addEventListener("change", updateBudgetTotals);
+});
 
   const removeBtn = line.querySelector(".line-remove-btn");
   if (removeBtn) {
