@@ -2570,6 +2570,8 @@ const invoicePaymentMethodInput = document.getElementById("invoicePaymentMethod"
 const invoiceNotesInput = document.getElementById("invoiceNotes");
 const invoiceInternalNotesInput = document.getElementById("invoiceInternalNotes");
 const invoiceBaseTotalEl = document.getElementById("invoiceBaseTotal");
+const invoiceDiscountPercentInput = document.getElementById("invoiceDiscountPercent");
+const invoiceDiscountAmountEl = document.getElementById("invoiceDiscountAmount");
 const invoiceVatTotalEl = document.getElementById("invoiceVatTotal");
 const invoiceGrandTotalEl = document.getElementById("invoiceGrandTotal");
 const invoicesTableBody = document.getElementById("invoicesTableBody");
@@ -2597,6 +2599,8 @@ const budgetDeliveryTimeInput = document.getElementById("budgetDeliveryTime");
 const budgetNotesInput = document.getElementById("budgetNotes");
 const budgetInternalNotesInput = document.getElementById("budgetInternalNotes");
 const budgetBaseTotalEl = document.getElementById("budgetBaseTotal");
+const budgetDiscountPercentInput = document.getElementById("budgetDiscountPercent");
+const budgetDiscountAmountEl = document.getElementById("budgetDiscountAmount");
 const budgetVatTotalEl = document.getElementById("budgetVatTotal");
 const budgetGrandTotalEl = document.getElementById("budgetGrandTotal");
 const budgetsTableBody = document.getElementById("budgetsTableBody");
@@ -2711,10 +2715,10 @@ function addInvoiceLine(data = {}) {
   line.dataset.lineId = String(invoiceLineCounter);
 
   line.innerHTML = `
-    <div class="field">
-      <label>Descripción</label>
-      <input type="text" class="line-description" value="${escapeHtml(data.description || "")}" />
-    </div>
+    <div class="field field-full">
+  <label>Descripción</label>
+  <textarea class="line-description" rows="4" placeholder="Describe la línea de factura...">${escapeHtml(data.description || "")}</textarea>
+</div>
 
     <div class="field">
       <label>Cantidad</label>
@@ -2741,10 +2745,10 @@ function addInvoiceLine(data = {}) {
 
   invoiceLinesContainer.appendChild(line);
 
-  line.querySelectorAll("input, select").forEach((el) => {
-    el.addEventListener("input", updateInvoiceTotals);
-    el.addEventListener("change", updateInvoiceTotals);
-  });
+  line.querySelectorAll("input, select, textarea").forEach((el) => {
+  el.addEventListener("input", updateInvoiceTotals);
+  el.addEventListener("change", updateInvoiceTotals);
+});
 
   const removeBtn = line.querySelector(".line-remove-btn");
   if (removeBtn) {
@@ -2836,52 +2840,94 @@ function getBudgetLinesData() {
 function updateBudgetTotals() {
   const lines = getBudgetLinesData();
 
-  const baseTotal = lines.reduce((sum, line) => sum + Number(line.baseAmount || 0), 0);
-  const vatTotal = lines.reduce((sum, line) => sum + Number(line.vatAmount || 0), 0);
+  const baseTotalRaw = lines.reduce((sum, line) => sum + Number(line.baseAmount || 0), 0);
+  const vatTotalRaw = lines.reduce((sum, line) => sum + Number(line.vatAmount || 0), 0);
+
+  const discountPercent = Number(budgetDiscountPercentInput?.value || 0);
+  const safeDiscountPercent = Math.max(0, Math.min(discountPercent, 100));
+
+  const discountAmount = baseTotalRaw * (safeDiscountPercent / 100);
+  const baseTotal = baseTotalRaw - discountAmount;
+
+  const ratio = baseTotalRaw > 0 ? (baseTotal / baseTotalRaw) : 0;
+  const vatTotal = vatTotalRaw * ratio;
+
   const grandTotal = baseTotal + vatTotal;
 
   if (budgetBaseTotalEl) budgetBaseTotalEl.textContent = formatCurrency(baseTotal);
+  if (budgetDiscountAmountEl) budgetDiscountAmountEl.textContent = formatCurrency(discountAmount);
   if (budgetVatTotalEl) budgetVatTotalEl.textContent = formatCurrency(vatTotal);
   if (budgetGrandTotalEl) budgetGrandTotalEl.textContent = formatCurrency(grandTotal);
 
-  return { baseTotal, vatTotal, grandTotal, lines };
+  return {
+    baseTotal,
+    vatTotal,
+    grandTotal,
+    discountPercent: safeDiscountPercent,
+    discountAmount,
+    lines
+  };
 }
 function getInvoiceLinesData() {
   const lines = [...document.querySelectorAll(".invoice-line")];
 
-  return lines.map((line) => {
-    const description = line.querySelector(".line-description")?.value.trim() || "";
-    const quantity = Number(line.querySelector(".line-quantity")?.value || 0);
-    const unitPrice = Number(line.querySelector(".line-unit-price")?.value || 0);
-    const vatRate = Number(line.querySelector(".line-vat-rate")?.value || 0);
-    const baseAmount = quantity * unitPrice;
-    const vatAmount = baseAmount * (vatRate / 100);
-    const lineTotal = baseAmount + vatAmount;
+  return lines
+    .map((line) => {
+      const description = line.querySelector(".line-description")?.value || "";
+      const quantity = Number(line.querySelector(".line-quantity")?.value || 0);
+      const unitPrice = Number(line.querySelector(".line-unit-price")?.value || 0);
+      const vatRate = Number(line.querySelector(".line-vat-rate")?.value || 0);
+      const baseAmount = quantity * unitPrice;
+      const vatAmount = baseAmount * (vatRate / 100);
+      const lineTotal = baseAmount + vatAmount;
 
-    return {
-      description,
-      quantity,
-      unitPrice,
-      vatRate,
-      baseAmount,
-      vatAmount,
-      lineTotal
-    };
-  });
+      return {
+        description,
+        quantity,
+        unitPrice,
+        vatRate,
+        baseAmount,
+        vatAmount,
+        lineTotal
+      };
+    })
+    .filter((line) => {
+      const hasDescription = String(line.description || "").trim() !== "";
+      const hasAmount = Number(line.unitPrice || 0) !== 0 || Number(line.baseAmount || 0) !== 0 || Number(line.lineTotal || 0) !== 0;
+      return hasDescription || hasAmount;
+    });
 }
 
 function updateInvoiceTotals() {
   const lines = getInvoiceLinesData();
 
-  const baseTotal = lines.reduce((sum, line) => sum + Number(line.baseAmount || 0), 0);
-  const vatTotal = lines.reduce((sum, line) => sum + Number(line.vatAmount || 0), 0);
+  const baseTotalRaw = lines.reduce((sum, line) => sum + Number(line.baseAmount || 0), 0);
+  const vatTotalRaw = lines.reduce((sum, line) => sum + Number(line.vatAmount || 0), 0);
+
+  const discountPercent = Number(invoiceDiscountPercentInput?.value || 0);
+  const safeDiscountPercent = Math.max(0, Math.min(discountPercent, 100));
+
+  const discountAmount = baseTotalRaw * (safeDiscountPercent / 100);
+  const baseTotal = baseTotalRaw - discountAmount;
+
+  const ratio = baseTotalRaw > 0 ? (baseTotal / baseTotalRaw) : 0;
+  const vatTotal = vatTotalRaw * ratio;
+
   const grandTotal = baseTotal + vatTotal;
 
   if (invoiceBaseTotalEl) invoiceBaseTotalEl.textContent = formatCurrency(baseTotal);
+  if (invoiceDiscountAmountEl) invoiceDiscountAmountEl.textContent = formatCurrency(discountAmount);
   if (invoiceVatTotalEl) invoiceVatTotalEl.textContent = formatCurrency(vatTotal);
   if (invoiceGrandTotalEl) invoiceGrandTotalEl.textContent = formatCurrency(grandTotal);
 
-  return { baseTotal, vatTotal, grandTotal, lines };
+  return {
+    baseTotal,
+    vatTotal,
+    grandTotal,
+    discountPercent: safeDiscountPercent,
+    discountAmount,
+    lines
+  };
 }
 
 function fillInvoiceClientOptions(selectedClientId = "") {
@@ -3025,11 +3071,13 @@ function getBudgetFormData() {
 
     lines: totals.lines,
 
-    baseTotal: totals.baseTotal,
-    vatTotal: totals.vatTotal,
-    totalAmount: totals.grandTotal,
+baseTotal: totals.baseTotal,
+vatTotal: totals.vatTotal,
+totalAmount: totals.grandTotal,
+discountPercent: totals.discountPercent,
+discountAmount: totals.discountAmount,
 
-    status: budgetStatusInput.value || "Pendiente",
+status: budgetStatusInput.value || "Pendiente",
     validUntil: budgetValidUntilInput.value,
     reference: budgetReferenceInput.value,
     deliveryTime: budgetDeliveryTimeInput.value,
@@ -3077,30 +3125,42 @@ function renderBudgetsTable(items = budgets) {
     .map(
       (budget) => `
     <tr>
-    <td>${getBudgetStatusBadge(budget.status)}</td>
-      <td>${escapeHtml(budget.budgetNumber || "-")}</td>
-      <td>${escapeHtml(formatShortDate(budget.budgetDate))}</td>
-      <td>${escapeHtml(budget.clientName || "-")}</td>
-      <td>${escapeHtml(budget.projectName || "-")}</td>
-      <td>${escapeHtml(budget.concept || "-")}</td>
-      <td>${escapeHtml(formatCurrency(budget.baseTotal))}</td>
-      <td>${escapeHtml(formatCurrency(budget.vatTotal))}</td>
-      <td>${escapeHtml(formatCurrency(budget.totalAmount))}</td>
-      <td>${escapeHtml(budget.status || "-")}</td>
-      <td>
-       <td>
-  <div class="row-actions">
-    <button type="button" class="btn-small" onclick="printBudget('${budget.id}')">Imprimir</button>
-    ${
-      budget.status === "Convertido en factura"
-        ? `<button type="button" class="btn-small" disabled title="Este presupuesto ya fue convertido">Convertido</button>`
-        : `<button type="button" class="btn-small" onclick="convertBudgetToInvoice('${budget.id}')">Convertir</button>`
-    }
-    <button type="button" class="btn-small" onclick="editBudget('${budget.id}')">Editar</button>
-    <button type="button" class="btn-small danger" onclick="deleteBudget('${budget.id}')">Eliminar</button>
-  </div>
-</td>
-    </tr>
+  <td>${getBudgetStatusBadge(budget.status)}</td>
+  <td>${escapeHtml(budget.budgetNumber || "-")}</td>
+  <td>${escapeHtml(formatShortDate(budget.budgetDate))}</td>
+  <td>${escapeHtml(budget.clientName || "-")}</td>
+  <td>${escapeHtml(budget.projectName || "-")}</td>
+  <td>${escapeHtml(budget.concept || "-")}</td>
+
+  <td>${escapeHtml(formatCurrency(budget.baseTotal))}</td>
+  <td>${escapeHtml(formatCurrency(budget.vatTotal))}</td>
+
+  <td>${
+    Number(budget.discountPercent || 0) > 0
+      ? `${Number(budget.discountPercent).toLocaleString("es-ES", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2
+        })}% (-${formatCurrency(budget.discountAmount || 0)})`
+      : "-"
+  }</td>
+
+  <td>${escapeHtml(formatCurrency(budget.totalAmount))}</td>
+
+  <td>${escapeHtml(budget.status || "-")}</td>
+
+  <td>
+    <div class="row-actions">
+      <button type="button" class="btn-small" onclick="printBudget('${budget.id}')">Imprimir</button>
+      ${
+        budget.status === "Convertido en factura"
+          ? `<button type="button" class="btn-small" disabled title="Este presupuesto ya fue convertido">Convertido</button>`
+          : `<button type="button" class="btn-small" onclick="convertBudgetToInvoice('${budget.id}')">Convertir</button>`
+      }
+      <button type="button" class="btn-small" onclick="editBudget('${budget.id}')">Editar</button>
+      <button type="button" class="btn-small danger" onclick="deleteBudget('${budget.id}')">Eliminar</button>
+    </div>
+  </td>
+</tr>
   `
     )
     .join("");
@@ -3149,6 +3209,8 @@ function getInvoiceFormData() {
     baseTotal: totals.baseTotal,
     vatTotal: totals.vatTotal,
     totalAmount: totals.grandTotal,
+    discountPercent: totals.discountPercent,
+discountAmount: totals.discountAmount,
     paymentStatus: invoicePaymentStatusInput.value,
     paymentDate: invoicePaymentDateInput.value,
     amountPaid: Number(invoiceAmountPaidInput.value || 0),
@@ -3179,7 +3241,7 @@ function renderInvoicesTable(items = invoices) {
   if (!items.length) {
     invoicesTableBody.innerHTML = `
       <tr>
-        <td colspan="10" class="empty-cell">No hay facturas todavía.</td>
+        <td colspan="11" class="empty-cell">No hay facturas todavía.</td>
       </tr>
     `;
     return;
@@ -3194,6 +3256,7 @@ function renderInvoicesTable(items = invoices) {
       <td>${escapeHtml(invoice.concept || "-")}</td>
       <td>${escapeHtml(formatCurrency(invoice.baseTotal))}</td>
       <td>${escapeHtml(formatCurrency(invoice.vatTotal))}</td>
+      <td>${Number(invoice.discountPercent || 0) > 0 ? `${Number(invoice.discountPercent).toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%` : "-"}</td>
       <td>${escapeHtml(formatCurrency(invoice.totalAmount))}</td>
       <td><span class="${getPaymentBadgeClass(invoice.paymentStatus)}">${escapeHtml(invoice.paymentStatus || "-")}</span></td>
       <td>
@@ -3212,10 +3275,18 @@ function printInvoice(id) {
     alert("No se encontró la factura.");
     return;
   }
-
+const discountNoteHtml =
+  Number(invoice.discountPercent || 0) > 0
+    ? `<p class="discount-note">
+        Se ha aplicado un descuento comercial del ${Number(invoice.discountPercent).toLocaleString("es-ES", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })}% sobre la base imponible de la presente factura.
+      </p>`
+    : "";
   const linesHtml = (invoice.lines || []).map((line) => `
-    <tr>
-      <td class="line-description-cell">${escapeHtml(line.description || "-")}</td>
+  <tr>
+    <td class="line-description-cell">${escapeHtml(line.description || "-").replace(/\n/g, "<br>")}</td>
       <td style="text-align:right;">${Number(line.quantity || 0).toLocaleString("es-ES")}</td>
       <td style="text-align:right;">${formatCurrency(line.unitPrice || 0)}</td>
       <td style="text-align:right;">${Number(line.vatRate || 0)}%</td>
@@ -3253,7 +3324,12 @@ const notesHtml = notesLines.length
           size: A4;
           margin: 12mm;
         }
-
+.discount-note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #444;
+  font-style: italic;
+}
         html, body {
           margin: 0;
           padding: 0;
@@ -3465,7 +3541,19 @@ const notesHtml = notesLines.length
           font-size: 16px;
           color: #1f4e79;
         }
+.line-description-cell {
+  white-space: pre-line;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.35;
+}
 
+.multiline-text {
+  white-space: pre-line;
+  line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
         table {
           width: 100%;
           border-collapse: collapse;
@@ -3623,9 +3711,9 @@ const notesHtml = notesLines.length
         </div>
 
         <div class="concept">
-          <h3>Concepto general</h3>
-          <p>${escapeHtml(invoice.concept || "-")}</p>
-        </div>
+  <h3>Concepto general</h3>
+  <p class="multiline-text">${escapeHtml(invoice.concept || "-").replace(/\n/g, "<br>")}</p>
+</div>
 
         <table class="invoice-lines-table">
   <thead>
@@ -3645,19 +3733,24 @@ const notesHtml = notesLines.length
         </table>
 
         <table class="totals">
-          <tr>
-            <td><strong>Base imponible</strong></td>
-            <td style="text-align:right;">${formatCurrency(invoice.baseTotal || 0)}</td>
-          </tr>
-          <tr>
-            <td><strong>IVA total</strong></td>
-            <td style="text-align:right;">${formatCurrency(invoice.vatTotal || 0)}</td>
-          </tr>
-          <tr class="final">
-            <td><strong>Total factura</strong></td>
-            <td style="text-align:right;">${formatCurrency(invoice.totalAmount || 0)}</td>
-          </tr>
-        </table>
+  <tr>
+    <td><strong>Base imponible</strong></td>
+    <td style="text-align:right;">${formatCurrency(invoice.baseTotal || 0)}</td>
+  </tr>
+  <tr>
+    <td><strong>Descuento aplicado${Number(invoice.discountPercent || 0) > 0 ? ` (${Number(invoice.discountPercent || 0).toLocaleString("es-ES")}%)` : ""}</strong></td>
+    <td style="text-align:right;">-${formatCurrency(invoice.discountAmount || 0)}</td>
+  </tr>
+  <tr>
+    <td><strong>IVA total</strong></td>
+    <td style="text-align:right;">${formatCurrency(invoice.vatTotal || 0)}</td>
+  </tr>
+  <tr class="final">
+    <td><strong>Total factura</strong></td>
+    <td style="text-align:right;">${formatCurrency(invoice.totalAmount || 0)}</td>
+  </tr>
+</table>
+${discountNoteHtml}
 
         <div class="box observations">
   <h3>Observaciones</h3>
@@ -3710,11 +3803,19 @@ function printBudget(id) {
     .filter((l) => l.length > 0);
 
   const notesHtml = notesLines.length
-    ? `<ul class="notes-list">
+      ? `<ul class="notes-list">
         ${notesLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}
        </ul>`
     : "<p>Sin observaciones</p>";
-
+const discountNoteHtml =
+  Number(budget.discountPercent || 0) > 0
+    ? `<p class="discount-note">
+        Se ha aplicado un descuento comercial del ${Number(budget.discountPercent).toLocaleString("es-ES", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })}% sobre la base imponible del presente presupuesto.
+      </p>`
+    : "";
   const printWindow = window.open("", "_blank", "width=1000,height=850");
   if (!printWindow) {
     alert("El navegador ha bloqueado la ventana de impresión.");
@@ -3755,7 +3856,12 @@ function printBudget(id) {
           max-width: 1000px;
           margin: 0 auto;
         }
-
+.discount-note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #444;
+  font-style: italic;
+}
         .header {
           display: flex;
           justify-content: space-between;
@@ -4048,21 +4154,25 @@ function printBudget(id) {
           </tbody>
         </table>
 
-        <table class="totals">
-          <tr>
-            <td><strong>Base imponible</strong></td>
-            <td style="text-align:right;">${formatCurrency(budget.baseTotal || 0)}</td>
-          </tr>
-          <tr>
-            <td><strong>IVA total</strong></td>
-            <td style="text-align:right;">${formatCurrency(budget.vatTotal || 0)}</td>
-          </tr>
-          <tr class="final">
-            <td><strong>Total presupuesto</strong></td>
-            <td style="text-align:right;">${formatCurrency(budget.totalAmount || 0)}</td>
-          </tr>
-        </table>
-
+       <table class="totals">
+  <tr>
+    <td><strong>Base imponible</strong></td>
+    <td style="text-align:right;">${formatCurrency(budget.baseTotal || 0)}</td>
+  </tr>
+  <tr>
+    <td><strong>Descuento aplicado${Number(budget.discountPercent || 0) > 0 ? ` (${Number(budget.discountPercent || 0).toLocaleString("es-ES")}%)` : ""}</strong></td>
+    <td style="text-align:right;">-${formatCurrency(budget.discountAmount || 0)}</td>
+  </tr>
+  <tr>
+    <td><strong>IVA total</strong></td>
+    <td style="text-align:right;">${formatCurrency(budget.vatTotal || 0)}</td>
+  </tr>
+  <tr class="final">
+    <td><strong>Total presupuesto</strong></td>
+    <td style="text-align:right;">${formatCurrency(budget.totalAmount || 0)}</td>
+  </tr>
+</table>
+${discountNoteHtml}
         <div class="box notes">
           <h3>Observaciones</h3>
           ${notesHtml}
@@ -4136,6 +4246,7 @@ function editInvoice(id) {
   fillInvoiceClientOptions(invoice.clientId || "");
   fillInvoiceProjectOptions(invoice.clientId || "", invoice.projectId || "");
   invoiceConceptInput.value = invoice.concept || "";
+  if (invoiceDiscountPercentInput) invoiceDiscountPercentInput.value = String(invoice.discountPercent || 0);
   invoicePaymentStatusInput.value = invoice.paymentStatus || "Pendiente";
   invoicePaymentDateInput.value = invoice.paymentDate || "";
   invoiceAmountPaidInput.value = String(invoice.amountPaid || 0);
@@ -4166,7 +4277,8 @@ function editBudget(id) {
   fillBudgetProjectOptions(budget.clientId || "", budget.projectId || "");
 
   if (budgetConceptInput) budgetConceptInput.value = budget.concept || "";
-  if (budgetStatusInput) budgetStatusInput.value = budget.status || "Pendiente";
+if (budgetDiscountPercentInput) budgetDiscountPercentInput.value = String(budget.discountPercent || 0);
+if (budgetStatusInput) budgetStatusInput.value = budget.status || "Pendiente";
   if (budgetValidUntilInput) budgetValidUntilInput.value = budget.validUntil || "";
   if (budgetReferenceInput) budgetReferenceInput.value = budget.reference || "";
   if (budgetDeliveryTimeInput) budgetDeliveryTimeInput.value = budget.deliveryTime || "";
@@ -4299,6 +4411,10 @@ window.convertBudgetToInvoice = convertBudgetToInvoice;
 window.printBudget = printBudget;
 if (btnAddInvoiceLine) {
   btnAddInvoiceLine.addEventListener("click", () => addInvoiceLine());
+}
+if (invoiceDiscountPercentInput) {
+  invoiceDiscountPercentInput.addEventListener("input", updateInvoiceTotals);
+  invoiceDiscountPercentInput.addEventListener("change", updateInvoiceTotals);
 }
 if (btnAddBudgetLine) {
   btnAddBudgetLine.addEventListener("click", () => addBudgetLine());
@@ -4482,6 +4598,10 @@ if (budgetForm) {
       alert("No se pudo guardar el presupuesto en Firestore.");
     }
   });
+}
+if (budgetDiscountPercentInput) {
+  budgetDiscountPercentInput.addEventListener("input", updateBudgetTotals);
+  budgetDiscountPercentInput.addEventListener("change", updateBudgetTotals);
 }
 const originalResetProjectForm = resetProjectForm;
 resetProjectForm = function () {
