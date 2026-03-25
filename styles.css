@@ -645,3 +645,68 @@ textarea {
   background: #fdecea;
   color: #a50e0e;
 }
+.budget-concept-cell {
+  white-space: pre-line;
+}
+.list-one-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.data-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.data-table td,
+.data-table th {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-col {
+  max-width: 180px;
+}
+
+.concept-col {
+  max-width: 220px;
+}
+.row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.data-table td:last-child {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: initial;
+}
+/* TARJETAS DEL DASHBOARD */
+.dashboard-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* TÍTULO */
+.dashboard-card h3 {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+/* VALOR */
+.dashboard-card p {
+  font-size: 26px;
+  font-weight: 700;
+  color: #111;
+}
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}

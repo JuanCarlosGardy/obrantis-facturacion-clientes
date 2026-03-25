@@ -346,7 +346,7 @@ function calculateDashboardStats() {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
+let totalDiscounts = 0;
   let billedMonth = 0;
   let collectedMonth = 0;
   let pendingTotal = 0;
@@ -366,6 +366,7 @@ if (paymentStatus === "Pendiente") {
     const paid = isInvoicePaidForDashboard(invoice);
 
     billedTotal += totalAmount;
+    totalDiscounts += Number(invoice.discountAmount || 0);
 
     if (invoiceDate && invoiceDate >= monthStart && invoiceDate <= monthEnd) {
       billedMonth += totalAmount;
@@ -390,7 +391,7 @@ if (paymentStatus === "Pendiente") {
 
   for (const budget of sourceBudgets) {
     const status = String(budget.status || "").trim().toLowerCase();
-
+totalDiscounts += Number(budget.discountAmount || 0);
     if (!status || status === "pendiente") {
       budgetsPending += 1;
     } else if (status === "aceptado") {
@@ -403,17 +404,18 @@ if (paymentStatus === "Pendiente") {
   const clientsActive = sourceClients.filter((client) => client && client.isActive !== false).length;
 
   return {
-    billedMonth,
-    collectedMonth,
-    pendingTotal,
-    overdueCount,
-    pendingInvoicesCount,
-    budgetsPending,
-    budgetsAccepted,
-    budgetsConverted,
-    billedTotal,
-    clientsActive
-  };
+  billedMonth,
+  collectedMonth,
+  pendingTotal,
+  overdueCount,
+  pendingInvoicesCount,
+  budgetsPending,
+  budgetsAccepted,
+  budgetsConverted,
+  billedTotal,
+  clientsActive,
+  totalDiscounts
+};
 }
 function renderDashboardAlerts(stats) {
   const alertsContainer = document.getElementById("dashboardAlerts");
@@ -538,7 +540,9 @@ function renderDashboardStats() {
   if (dashBilledTotal) {
     dashBilledTotal.textContent = formatDashboardCurrency(stats.billedTotal);
   }
-
+if (dashTotalDiscounts) {
+  dashTotalDiscounts.textContent = formatDashboardCurrency(stats.totalDiscounts || 0);
+}
   if (dashClientsActive) {
     dashClientsActive.textContent = String(stats.clientsActive);
   }
@@ -630,6 +634,7 @@ const reportQuarterSelect = document.getElementById("reportQuarter");
 const dashBilledMonth = document.getElementById("dashBilledMonth");
 const dashCollectedMonth = document.getElementById("dashCollectedMonth");
 const dashPendingTotal = document.getElementById("dashPendingTotal");
+const dashTotalDiscounts = document.getElementById("dashTotalDiscounts");
 const dashOverdueCount = document.getElementById("dashOverdueCount");
 const dashBudgetsPending = document.getElementById("dashBudgetsPending");
 const dashBudgetsAccepted = document.getElementById("dashBudgetsAccepted");
@@ -3129,8 +3134,13 @@ function renderBudgetsTable(items = budgets) {
   <td>${escapeHtml(budget.budgetNumber || "-")}</td>
   <td>${escapeHtml(formatShortDate(budget.budgetDate))}</td>
   <td>${escapeHtml(budget.clientName || "-")}</td>
-  <td>${escapeHtml(budget.projectName || "-")}</td>
-  <td>${escapeHtml(budget.concept || "-")}</td>
+<td class="list-one-line project-col" title="${escapeHtml(budget.projectName || "")}">
+  ${escapeHtml(budget.projectName || "-")}
+</td>
+
+<td class="list-one-line concept-col" title="${escapeHtml(budget.concept || "")}">
+  ${escapeHtml(budget.concept || "-")}
+</td>
 
   <td>${escapeHtml(formatCurrency(budget.baseTotal))}</td>
   <td>${escapeHtml(formatCurrency(budget.vatTotal))}</td>
@@ -3252,8 +3262,13 @@ function renderInvoicesTable(items = invoices) {
       <td>${escapeHtml(invoice.invoiceNumber || "-")}</td>
       <td>${escapeHtml(formatShortDate(invoice.invoiceDate))}</td>
       <td>${escapeHtml(invoice.clientName || "-")}</td>
-      <td>${escapeHtml(invoice.projectName || "-")}</td>
-      <td>${escapeHtml(invoice.concept || "-")}</td>
+ <td class="list-one-line project-col" title="${escapeHtml(invoice.projectName || "")}">
+  ${escapeHtml(invoice.projectName || "-")}
+</td>
+
+<td class="list-one-line concept-col" title="${escapeHtml(invoice.concept || "")}">
+  ${escapeHtml(invoice.concept || "-")}
+</td>
       <td>${escapeHtml(formatCurrency(invoice.baseTotal))}</td>
       <td>${escapeHtml(formatCurrency(invoice.vatTotal))}</td>
       <td>${Number(invoice.discountPercent || 0) > 0 ? `${Number(invoice.discountPercent).toLocaleString("es-ES", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%` : "-"}</td>
