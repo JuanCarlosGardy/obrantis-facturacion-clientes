@@ -2577,6 +2577,9 @@ const invoiceInternalNotesInput = document.getElementById("invoiceInternalNotes"
 const invoiceBaseTotalEl = document.getElementById("invoiceBaseTotal");
 const invoiceDiscountPercentInput = document.getElementById("invoiceDiscountPercent");
 const invoiceDiscountAmountEl = document.getElementById("invoiceDiscountAmount");
+const invoiceRetentionInput = document.getElementById("invoiceRetention");
+const invoiceRetentionTypeInput = document.getElementById("invoiceRetentionType");
+const invoiceRetentionAmountEl = document.getElementById("invoiceRetentionAmount");
 const invoiceVatTotalEl = document.getElementById("invoiceVatTotal");
 const invoiceGrandTotalEl = document.getElementById("invoiceGrandTotal");
 const invoicesTableBody = document.getElementById("invoicesTableBody");
@@ -2912,16 +2915,29 @@ function updateInvoiceTotals() {
   const discountPercent = Number(invoiceDiscountPercentInput?.value || 0);
   const safeDiscountPercent = Math.max(0, Math.min(discountPercent, 100));
 
+  const retentionPercent = Number(invoiceRetentionInput?.value || 0);
+  const safeRetentionPercent = Math.max(0, Math.min(retentionPercent, 100));
+  const retentionType = String(invoiceRetentionTypeInput?.value || "base");
+
   const discountAmount = baseTotalRaw * (safeDiscountPercent / 100);
   const baseTotal = baseTotalRaw - discountAmount;
 
   const ratio = baseTotalRaw > 0 ? (baseTotal / baseTotalRaw) : 0;
   const vatTotal = vatTotalRaw * ratio;
 
-  const grandTotal = baseTotal + vatTotal;
+  let retentionAmount = 0;
+
+  if (retentionType === "base") {
+    retentionAmount = baseTotal * (safeRetentionPercent / 100);
+  } else {
+    retentionAmount = (baseTotal + vatTotal) * (safeRetentionPercent / 100);
+  }
+
+  const grandTotal = baseTotal + vatTotal - retentionAmount;
 
   if (invoiceBaseTotalEl) invoiceBaseTotalEl.textContent = formatCurrency(baseTotal);
   if (invoiceDiscountAmountEl) invoiceDiscountAmountEl.textContent = formatCurrency(discountAmount);
+  if (invoiceRetentionAmountEl) invoiceRetentionAmountEl.textContent = "-" + formatCurrency(retentionAmount);
   if (invoiceVatTotalEl) invoiceVatTotalEl.textContent = formatCurrency(vatTotal);
   if (invoiceGrandTotalEl) invoiceGrandTotalEl.textContent = formatCurrency(grandTotal);
 
@@ -2931,6 +2947,9 @@ function updateInvoiceTotals() {
     grandTotal,
     discountPercent: safeDiscountPercent,
     discountAmount,
+    retentionPercent: safeRetentionPercent,
+    retentionType,
+    retentionAmount,
     lines
   };
 }
