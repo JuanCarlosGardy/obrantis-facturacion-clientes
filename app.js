@@ -3025,6 +3025,17 @@ function resetInvoiceForm() {
   invoiceLinesContainer.innerHTML = "";
   invoicePaymentStatusInput.value = "Pendiente";
   invoiceAmountPaidInput.value = "0";
+    if (invoiceDiscountPercentInput) {
+    invoiceDiscountPercentInput.value = "0";
+  }
+
+  if (invoiceRetentionInput) {
+    invoiceRetentionInput.value = "0";
+  }
+
+  if (invoiceRetentionTypeInput) {
+    invoiceRetentionTypeInput.value = "base";
+  }
   invoiceDateInput.value = new Date().toISOString().split("T")[0];
   fillInvoiceClientOptions();
   fillInvoiceProjectOptions();
@@ -3237,9 +3248,12 @@ function getInvoiceFormData() {
     lines: totals.lines,
     baseTotal: totals.baseTotal,
     vatTotal: totals.vatTotal,
-    totalAmount: totals.grandTotal,
+       totalAmount: totals.grandTotal,
     discountPercent: totals.discountPercent,
-discountAmount: totals.discountAmount,
+    discountAmount: totals.discountAmount,
+    retentionPercent: totals.retentionPercent,
+    retentionType: totals.retentionType,
+    retentionAmount: totals.retentionAmount,
     paymentStatus: invoicePaymentStatusInput.value,
     paymentDate: invoicePaymentDateInput.value,
     amountPaid: Number(invoiceAmountPaidInput.value || 0),
@@ -4281,6 +4295,13 @@ function editInvoice(id) {
   fillInvoiceProjectOptions(invoice.clientId || "", invoice.projectId || "");
   invoiceConceptInput.value = invoice.concept || "";
   if (invoiceDiscountPercentInput) invoiceDiscountPercentInput.value = String(invoice.discountPercent || 0);
+    if (invoiceRetentionInput) {
+    invoiceRetentionInput.value = String(invoice.retentionPercent || 0);
+  }
+
+  if (invoiceRetentionTypeInput) {
+    invoiceRetentionTypeInput.value = invoice.retentionType || "base";
+  }
   invoicePaymentStatusInput.value = invoice.paymentStatus || "Pendiente";
   invoicePaymentDateInput.value = invoice.paymentDate || "";
   invoiceAmountPaidInput.value = String(invoice.amountPaid || 0);
@@ -4449,6 +4470,13 @@ if (btnAddInvoiceLine) {
 if (invoiceDiscountPercentInput) {
   invoiceDiscountPercentInput.addEventListener("input", updateInvoiceTotals);
   invoiceDiscountPercentInput.addEventListener("change", updateInvoiceTotals);
+}
+if (invoiceRetentionInput) {
+  invoiceRetentionInput.addEventListener("input", updateInvoiceTotals);
+}
+
+if (invoiceRetentionTypeInput) {
+  invoiceRetentionTypeInput.addEventListener("change", updateInvoiceTotals);
 }
 if (btnAddBudgetLine) {
   btnAddBudgetLine.addEventListener("click", () => addBudgetLine());
